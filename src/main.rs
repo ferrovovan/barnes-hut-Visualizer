@@ -1,5 +1,4 @@
 use std::sync::atomic::Ordering;
-use std::fs;
 
 mod body;
 mod quadtree;
@@ -8,65 +7,59 @@ mod simulation;
 mod utils;
 mod scenario_config;
 
-use scenario_config::SimulationConfig;
 use renderer::Renderer;
 use simulation::Simulation;
 
 fn main() {
-    // 1. ЗАГРУЖАЕМ КОНФИГУРАЦИЮ (Пока напрямую из файла для тестов)
-    let json_data = fs::read_to_string("presets/solar_system_full.json")
-        .expect("Не удалось найти файл конфигурации!");
-        
-    let config: SimulationConfig = serde_json::from_str(&json_data)
-        .expect("Ошибка парсинга JSON!");
-
-    // 2. КОНФИГ ОКНА
-    let window_config = quarkstrom::Config {
+    let config = quarkstrom::Config {
         window_mode: quarkstrom::WindowMode::Windowed(900, 900),
     };
 
-    // 3. ИНИЦИАЛИЗАЦИЯ СИМУЛЯЦИИ
     let mut simulation = Simulation::new();
-    
-    // ВАЖНЫЙ МОМЕНТ: Скорее всего, Simulation::new() внутри себя 
-    // по умолчанию генерирует 1 миллион частиц (старый хардкод).
-    // Мы очищаем этот старый массив и вставляем наши объекты из JSON!
     simulation.bodies.clear();
-    simulation.bodies = config.into_particles(); // Заполняем новыми телами
 
-    println!("Запущена симуляция: {}", config.name);
-    println!("Всего тел на экране: {}", simulation.bodies.len());
+    renderer::PAUSED.store(true, Ordering::SeqCst);
 
-    // 4. ЗАПУСК ПОТОКА ФИЗИКИ
     std::thread::spawn(move || {
         loop {
+            // Если GUI передал нам новый пресет
+            if let Some((new_bodies, _theta, _epsilon, dt)) = renderer::RESET_BODIES.lock().take() {
+                simulation.bodies = new_bodies;
+                simulation.dt = dt;
+                
+                // Вызываем вашу функцию отрисовки для кадра №0 (Она поднимет UPDATE_LOCK!)
+                render(&mut simulation);
+            }
+
             if renderer::PAUSED.load(Ordering::Relaxed) {
                 std::thread::yield_now();
             } else {
-                simulation.step();
+                if !simulation.bodies.is_empty() {
+                    simulation.step();
+                    render(&mut simulation);
+                }
             }
-            render(&mut simulation);
         }
     });
 
-    // 5. ЗАПУСК ОКНА
-    quarkstrom::run::<Renderer>(window_config);
+    quarkstrom::run::<Renderer>(config);
 }
 
+// ВАША ОРИГИНАЛЬНАЯ ФУНКЦИЯ: Идеально синхронизирует физику и видеокарту
 fn render(simulation: &mut Simulation) {
     let mut lock = renderer::UPDATE_LOCK.lock();
     for body in renderer::SPAWN.lock().drain(..) {
         simulation.bodies.push(body);
     }
     {
-        let mut lock = renderer::BODIES.lock();
-        lock.clear();
-        lock.extend_from_slice(&simulation.bodies);
+        let mut bodies_lock = renderer::BODIES.lock();
+        bodies_lock.clear();
+        bodies_lock.extend_from_slice(&simulation.bodies);
     }
     {
-        let mut lock = renderer::QUADTREE.lock();
-        lock.clear();
-        lock.extend_from_slice(&simulation.quadtree.nodes);
+        let mut quadtree_lock = renderer::QUADTREE.lock();
+        quadtree_lock.clear();
+        quadtree_lock.extend_from_slice(&simulation.quadtree.nodes);
     }
-    *lock |= true;
+    *lock = true; // ВОТ ОН, ФИКС ЧЕРНОГО ЭКРАНА! Говорим рендереру: "Данные готовы, рисуй!"
 }
