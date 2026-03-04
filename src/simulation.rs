@@ -1,6 +1,7 @@
 use crate::{
     body::Body,
     quadtree::{Quad, Quadtree},
+    renderer::DT,
     utils,
 };
 
@@ -33,11 +34,15 @@ impl Simulation {
     }
 
     pub fn step(&mut self) {
+        // Синхронизация dt с глобальным значением из GUI
+        if let Some(dt) = DT.try_lock() {
+            self.dt = *dt;
+        }
         self.iterate();
         self.collide();
         self.attract();
         self.frame += 1;
-    }
+}
 
     pub fn attract(&mut self) {
         let quad = Quad::new_containing(&self.bodies);
@@ -79,7 +84,6 @@ impl Simulation {
         broccoli.find_colliding_pairs(|i, j| {
             let i = *i.unpack_inner();
             let j = *j.unpack_inner();
-
             self.resolve(i, j);
         });
     }
