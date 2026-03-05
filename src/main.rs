@@ -6,7 +6,7 @@ mod renderer;
 mod simulation;
 mod utils;
 mod scenario_config;
-
+mod gui_state;
 use renderer::Renderer;
 use simulation::Simulation;
 
