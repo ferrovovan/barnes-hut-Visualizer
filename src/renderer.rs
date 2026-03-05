@@ -14,6 +14,7 @@ use quarkstrom::{egui, winit::event::VirtualKeyCode, winit_input_helper::WinitIn
 use ultraviolet::Vec2;
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
+use rfd::FileDialog;
 
 pub static PAUSED: Lazy<AtomicBool> = Lazy::new(|| true.into());
 pub static UPDATE_LOCK: Lazy<Mutex<bool>> = Lazy::new(|| Mutex::new(false));
@@ -22,6 +23,21 @@ pub static QUADTREE: Lazy<Mutex<Vec<Node>>> = Lazy::new(|| Mutex::new(Vec::new()
 pub static SPAWN: Lazy<Mutex<Vec<Body>>> = Lazy::new(|| Mutex::new(Vec::new()));
 pub static RESET_BODIES: Lazy<Mutex<Option<(Vec<Body>, f32, f32, f32)>>> = Lazy::new(|| Mutex::new(None));
 pub static DT: Lazy<Mutex<f32>> = Lazy::new(|| Mutex::new(0.05));
+
+const PRESETS: &[(&str, &str)] = &[
+    ("🌌 Оригинальный диск (100k тел)", ""),
+    ("🪐 Солнечная система (полная)", "presets/11_solar_system_full.json"),
+    ("⭐ Двойная звезда", "presets/binary_star.json"),
+    ("💥 Столкновение галактик", "presets/galaxy_collision.json"),
+    ("🌀 Аккреционный диск чёрной дыры", "presets/black_hole_accretion.json"),
+    ("💍 Кольца Сатурна (улучшенные)", "presets/saturn_rings.json"),
+    ("🔵 Глобулярное скопление", "presets/globular_cluster.json"),
+    ("☄ Солнечная система + комета", "presets/solar_system_comet.json"),
+    ("🌙 Двойная планета (Земля-Луна)", "presets/double_planet.json"),
+    ("🔺 Задача трёх тел", "presets/three_body.json"),
+    ("📀 Галактика с перемычкой", "presets/barred_galaxy.json"),
+    ("🌌 Расширяющаяся Вселенная", "presets/expanding_universe.json"),
+];
 
 pub struct Renderer {
     pos: Vec2,
@@ -38,6 +54,8 @@ pub struct Renderer {
     quadtree: Vec<Node>,
     gui_state: GuiState,
     dt: f32,
+    preset_window_open: bool,
+    pending_preset: Option<String>,
 }
 
 impl quarkstrom::Renderer for Renderer {
@@ -57,6 +75,8 @@ impl quarkstrom::Renderer for Renderer {
             quadtree: Vec::new(),
             gui_state: GuiState::new(),
             dt: 0.05,
+            preset_window_open: false,
+            pending_preset: None,
         }
     }
 
@@ -65,7 +85,7 @@ impl quarkstrom::Renderer for Renderer {
 
         if input.key_pressed(VirtualKeyCode::Space) {
             let val = PAUSED.load(Ordering::Relaxed);
-            PAUSED.store(!val, Ordering::Relaxed)
+            PAUSED.store(!val, Ordering::Relaxed);
         }
 
         if let Some((mx, my)) = input.mouse() {
@@ -74,7 +94,7 @@ impl quarkstrom::Renderer for Renderer {
             let target = Vec2::new(mx * 2.0 - width as f32, height as f32 - my * 2.0) / height as f32;
             self.pos += target * self.scale * (1.0 - zoom);
             self.scale *= zoom;
-            self.gui_state.camera_zoom = self.scale; // обновляем зум для логики отображения
+            self.gui_state.camera_zoom = self.scale;
         }
 
         if input.mouse_held(2) {
@@ -93,7 +113,6 @@ impl quarkstrom::Renderer for Renderer {
             mouse * self.scale + self.pos
         };
 
-        // ПКМ – создание нового тела
         if input.mouse_pressed(1) {
             let mouse = world_mouse();
             self.spawn_body = Some(Body::new(mouse, Vec2::zero(), 1.0, 1.0));
@@ -123,7 +142,6 @@ impl quarkstrom::Renderer for Renderer {
             self.confirmed_bodies = self.spawn_body.take();
         }
 
-        // ЛКМ – выбор объекта для отображения информации
         if input.mouse_pressed(0) {
             let mouse_world = world_mouse();
             self.gui_state.handle_click([mouse_world.x, mouse_world.y], &self.bodies);
@@ -136,14 +154,13 @@ impl quarkstrom::Renderer for Renderer {
             if *lock {
                 std::mem::swap(&mut self.bodies, &mut BODIES.lock());
                 std::mem::swap(&mut self.quadtree, &mut QUADTREE.lock());
-                // Синхронизируем имена: если тел стало больше, добавляем None
                 if self.bodies.len() > self.gui_state.names.len() {
                     self.gui_state.names.resize(self.bodies.len(), None);
                 }
             }
             if let Some(body) = self.confirmed_bodies.take() {
                 self.bodies.push(body);
-                self.gui_state.names.push(None); // новое тело без имени
+                self.gui_state.names.push(None);
                 SPAWN.lock().push(body);
             }
             *lock = false;
@@ -155,22 +172,19 @@ impl quarkstrom::Renderer for Renderer {
         ctx.set_view_pos(self.pos);
         ctx.set_view_scale(self.scale);
 
-        if !self.bodies.is_empty() {
-            if self.show_bodies {
-                for i in 0..self.bodies.len() {
-                    ctx.draw_circle(self.bodies[i].pos, self.bodies[i].radius, [0xff; 4]);
-                }
-            }
-
-            if let Some(body) = &self.confirmed_bodies {
+        if !self.bodies.is_empty() && self.show_bodies {
+            for body in &self.bodies {
                 ctx.draw_circle(body.pos, body.radius, [0xff; 4]);
-                ctx.draw_line(body.pos, body.pos + body.vel, [0xff; 4]);
             }
+        }
 
-            if let Some(body) = &self.spawn_body {
-                ctx.draw_circle(body.pos, body.radius, [0xff; 4]);
-                ctx.draw_line(body.pos, body.pos + body.vel, [0xff; 4]);
-            }
+        if let Some(body) = &self.confirmed_bodies {
+            ctx.draw_circle(body.pos, body.radius, [0xff; 4]);
+            ctx.draw_line(body.pos, body.pos + body.vel, [0xff; 4]);
+        }
+        if let Some(body) = &self.spawn_body {
+            ctx.draw_circle(body.pos, body.radius, [0xff; 4]);
+            ctx.draw_line(body.pos, body.pos + body.vel, [0xff; 4]);
         }
     }
 
@@ -184,32 +198,26 @@ impl quarkstrom::Renderer for Renderer {
             .open(&mut settings_open)
             .show(ctx, |ui| {
                 ui.checkbox(&mut show_bodies, "Show Bodies");
-
                 let is_paused = PAUSED.load(Ordering::Relaxed);
                 if ui.button(if is_paused { "▶ Запустить" } else { "⏸ Пауза" }).clicked() {
                     PAUSED.store(!is_paused, Ordering::Relaxed);
                 }
-
                 ui.separator();
-
-                // Ползунок для dt
                 ui.add(egui::Slider::new(&mut self.dt, 0.01..=2.0).text("Δt (time step)"));
                 if ui.button("Apply Δt").clicked() {
                     *DT.lock() = self.dt;
                 }
-
                 ui.separator();
-
-                if ui.button("🪐 Загрузить Солнечную Систему").clicked() {
-                    self.load_preset("presets/11_solar_system_full.json");
+                if ui.button("📋 Сценарии").clicked() {
+                    self.preset_window_open = true;
                 }
-                if ui.button("☄ Загрузить Тестовый пресет (1k)").clicked() {
-                    self.load_preset("presets/12_test_fast.json");
+                if ui.button("📂 Загрузить свой пресет").clicked() {
+                    if let Some(path) = FileDialog::new().add_filter("JSON", &["json"]).pick_file() {
+                        let path_str = path.to_string_lossy().to_string();
+                        self.load_preset(&path_str);
+                    }
                 }
-
                 ui.separator();
-
-                // Информация о выбранном объекте
                 if let Some(idx) = self.gui_state.selected_body_index {
                     if idx < self.bodies.len() && idx < self.gui_state.names.len() {
                         if let Some(name) = &self.gui_state.names[idx] {
@@ -232,6 +240,35 @@ impl quarkstrom::Renderer for Renderer {
 
         self.settings_window_open = settings_open;
         self.show_bodies = show_bodies;
+
+        // Окно выбора сценариев (без захвата open)
+        if self.preset_window_open {
+            let mut open = true;
+            egui::Window::new("Выбор сценария")
+                .open(&mut open)
+                .resizable(false)
+                .show(ctx, |ui| {
+                    ui.set_width(300.0);
+                    for (name, path) in PRESETS {
+                        if ui.button(*name).clicked() {
+                            self.pending_preset = Some(path.to_string());
+                        }
+                    }
+                });
+            // Закрываем окно после обработки
+            if !open {
+                self.preset_window_open = false;
+            }
+        }
+
+        // Отложенная загрузка
+        if let Some(preset_path) = self.pending_preset.take() {
+            if preset_path.is_empty() {
+                self.load_uniform_disc();
+            } else {
+                self.load_preset(&preset_path);
+            }
+        }
     }
 }
 
@@ -241,41 +278,53 @@ impl Renderer {
         if let Ok(content) = std::fs::read_to_string(path) {
             if let Ok(config) = serde_json::from_str::<SimulationConfig>(&content) {
                 let (new_bodies, names) = config.into_particles();
-                self.gui_state.names = names;
-                self.gui_state.selected_body_index = None;
-
-                // Настройка камеры ДО перемещения new_bodies
-                if !new_bodies.is_empty() {
-                    let mut min_x = f32::MAX;
-                    let mut min_y = f32::MAX;
-                    let mut max_x = f32::MIN;
-                    let mut max_y = f32::MIN;
-                    for body in &new_bodies {
-                        min_x = min_x.min(body.pos.x);
-                        min_y = min_y.min(body.pos.y);
-                        max_x = max_x.max(body.pos.x);
-                        max_y = max_y.max(body.pos.y);
-                    }
-                    let width = (max_x - min_x).abs();
-                    let height = (max_y - min_y).abs();
-                    let needed_scale = (height.max(width) / 0.8) / 2.0;
-                    self.scale = needed_scale.max(100.0);
-                    self.pos = Vec2::new((min_x + max_x) / 2.0, (min_y + max_y) / 2.0);
-                } else {
-                    self.scale = 3600.0;
-                    self.pos = Vec2::zero();
-                }
-
-                // Теперь можно перемещать new_bodies
-                *RESET_BODIES.lock() = Some((new_bodies, config.theta, config.epsilon, config.dt));
-
-                PAUSED.store(false, Ordering::SeqCst);
+                self.apply_new_bodies(new_bodies, names);
                 println!(">>> УСПЕХ: Пресет загружен!");
             } else {
-                println!("!!! ОШИБКА: Неверный формат JSON.");
+                eprintln!("!!! ОШИБКА: Неверный формат JSON.");
             }
         } else {
-            println!("!!! ОШИБКА: Файл не найден: {}", path);
+            eprintln!("!!! ОШИБКА: Файл не найден: {}", path);
         }
+    }
+
+    fn load_uniform_disc(&mut self) {
+        use crate::utils;
+        let new_bodies = utils::uniform_disc(100000);
+        let names = vec![None; new_bodies.len()];
+        self.apply_new_bodies(new_bodies, names);
+        println!(">>> Загружен оригинальный диск (100k тел)");
+    }
+
+    fn apply_new_bodies(&mut self, new_bodies: Vec<Body>, names: Vec<Option<String>>) {
+        self.gui_state.names = names;
+        self.gui_state.selected_body_index = None;
+
+        if !new_bodies.is_empty() {
+            let mut min_x = f32::MAX;
+            let mut min_y = f32::MAX;
+            let mut max_x = f32::MIN;
+            let mut max_y = f32::MIN;
+            for body in &new_bodies {
+                min_x = min_x.min(body.pos.x);
+                min_y = min_y.min(body.pos.y);
+                max_x = max_x.max(body.pos.x);
+                max_y = max_y.max(body.pos.y);
+            }
+            let width = (max_x - min_x).abs();
+            let height = (max_y - min_y).abs();
+            let needed_scale = (height.max(width) / 0.8) / 2.0;
+            self.scale = needed_scale.max(100.0);
+            self.pos = Vec2::new((min_x + max_x) / 2.0, (min_y + max_y) / 2.0);
+        } else {
+            self.scale = 3600.0;
+            self.pos = Vec2::zero();
+        }
+
+        let theta = 1.0;
+        let epsilon = 1.0;
+        let dt = self.dt;
+        *RESET_BODIES.lock() = Some((new_bodies, theta, epsilon, dt));
+        PAUSED.store(false, Ordering::SeqCst);
     }
 }
