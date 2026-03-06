@@ -1,0 +1,18 @@
+{
+  "name": "Three-Body Problem",
+  "star_count": 0,
+  "satellite_count": 0,
+  "star_mass": 0.0,
+  "satellite_mass_range": [0.0, 0.0],
+  "disk_radius": 0.0,
+  "seed": 42,
+  "theta": 0.5,
+  "epsilon": 0.1,
+  "dt": 0.02,
+  "bodies": [
+    {"name": "Body A", "position": {"x": 100.0, "y": 0.0}, "velocity": {"x": 0.0, "y": 50.0}, "mass": 1000.0, "radius": 8.0},
+    {"name": "Body B", "position": {"x": -50.0, "y": 86.6}, "velocity": {"x": -43.3, "y": -25.0}, "mass": 1000.0, "radius": 8.0},
+    {"name": "Body C", "position": {"x": -50.0, "y": -86.6}, "velocity": {"x": 43.3, "y": -25.0}, "mass": 1000.0, "radius": 8.0}
+  ],
+  "generators": []
+}

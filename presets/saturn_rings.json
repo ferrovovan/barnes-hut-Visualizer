@@ -1,0 +1,23 @@
+{
+  "name": "Saturn Rings (Enhanced)",
+  "star_count": 0,
+  "satellite_count": 0,
+  "star_mass": 0.0,
+  "satellite_mass_range": [0.0, 0.0],
+  "disk_radius": 0.0,
+  "seed": 777,
+  "theta": 0.7,
+  "epsilon": 0.3,
+  "dt": 0.05,
+  "bodies": [
+    {"name": "Saturn", "position": {"x": 0.0, "y": 0.0}, "velocity": {"x": 0.0, "y": 0.0}, "mass": 3000.0, "radius": 12.0}
+  ],
+  "generators": [
+    {"gen_type": "Ring", "center": {"x": 0.0, "y": 0.0}, "central_mass": 3000.0, "count": 3000,
+     "distance_range": [18.0, 28.0], "density_range": [0.01, 0.05], "radius_range": [0.2, 0.4],
+     "base_velocity": {"x": 0.0, "y": 0.0}},
+    {"gen_type": "Ring", "center": {"x": 0.0, "y": 0.0}, "central_mass": 3000.0, "count": 1500,
+     "distance_range": [30.0, 45.0], "density_range": [0.005, 0.02], "radius_range": [0.2, 0.4],
+     "base_velocity": {"x": 0.0, "y": 0.0}}
+  ]
+}
