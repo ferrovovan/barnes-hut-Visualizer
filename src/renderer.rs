@@ -11,6 +11,45 @@ use crate::{
 use quarkstrom::{egui, winit::event::VirtualKeyCode, winit_input_helper::WinitInputHelper};
 
 use palette::{rgb::Rgba, Hsluv, IntoColor};
+fn lerp(a: f32, b: f32, t: f32) -> f32 {
+    a + (b - a) * t
+}
+
+fn lerp_color(a: [u8; 4], b: [u8; 4], t: f32) -> [u8; 4] {
+    [
+        lerp(a[0] as f32, b[0] as f32, t) as u8,
+        lerp(a[1] as f32, b[1] as f32, t) as u8,
+        lerp(a[2] as f32, b[2] as f32, t) as u8,
+        255,
+    ]
+}
+
+fn normalize_mass(mass: f32, min_mass: f32, max_mass: f32) -> f32 {
+    let min_log = min_mass.max(0.0001).ln();
+    let max_log = max_mass.max(0.0001).ln();
+    let mass_log = mass.max(0.0001).ln();
+
+    ((mass_log - min_log) / (max_log - min_log))
+        .clamp(0.0, 1.0)
+}
+
+fn blackbody_color(t: f32) -> [u8; 4] {
+    let red = [255, 80, 0, 255];
+    let orange = [255, 140, 0, 255];
+    let yellow = [255, 220, 120, 255];
+    let white = [255, 255, 255, 255];
+    let blue = [160, 200, 255, 255];
+
+    if t < 0.25 {
+        lerp_color(red, orange, t / 0.25)
+    } else if t < 0.5 {
+        lerp_color(orange, yellow, (t - 0.25) / 0.25)
+    } else if t < 0.75 {
+        lerp_color(yellow, white, (t - 0.5) / 0.25)
+    } else {
+        lerp_color(white, blue, (t - 0.75) / 0.25)
+    }
+}
 use ultraviolet::Vec2;
 
 use once_cell::sync::Lazy;
@@ -164,18 +203,41 @@ impl quarkstrom::Renderer for Renderer {
 
         if !self.bodies.is_empty() {
             if self.show_bodies {
+                let min_mass = self
+                    .bodies
+                    .iter()
+                    .map(|b| b.mass)
+                    .fold(f32::INFINITY, f32::min);
+
+                let max_mass = self
+                    .bodies
+                    .iter()
+                    .map(|b| b.mass)
+                    .fold(f32::NEG_INFINITY, f32::max);
+
                 for i in 0..self.bodies.len() {
-                    ctx.draw_circle(self.bodies[i].pos, self.bodies[i].radius, [0xff; 4]);
+                    let body = &self.bodies[i];
+                    let t = normalize_mass(
+                        body.mass,
+                        min_mass,
+                        max_mass,
+                    );
+                    let color = blackbody_color(t);
+                    let radius = 1.0 + body.mass.cbrt() * 0.6;
+
+                    ctx.draw_circle(body.pos, radius, color);
                 }
             }
 
             if let Some(body) = &self.confirmed_bodies {
-                ctx.draw_circle(body.pos, body.radius, [0xff; 4]);
+                let color = blackbody_color(1.0);
+                ctx.draw_circle(body.pos, body.radius, color);
                 ctx.draw_line(body.pos, body.pos + body.vel, [0xff; 4]);
             }
 
             if let Some(body) = &self.spawn_body {
-                ctx.draw_circle(body.pos, body.radius, [0xff; 4]);
+                let color = blackbody_color(1.0);
+                ctx.draw_circle(body.pos, body.radius, color);
                 ctx.draw_line(body.pos, body.pos + body.vel, [0xff; 4]);
             }
         }
