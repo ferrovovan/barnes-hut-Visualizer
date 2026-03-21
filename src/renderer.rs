@@ -24,13 +24,21 @@ fn lerp_color(a: [u8; 4], b: [u8; 4], t: f32) -> [u8; 4] {
     ]
 }
 
-fn normalize_mass(mass: f32, min_mass: f32, max_mass: f32) -> f32 {
+fn normalize_mass(
+    mass: f32,
+    min_mass: f32,
+    max_mass: f32,
+) -> f32 {
+
     let min_log = min_mass.max(0.0001).ln();
     let max_log = max_mass.max(0.0001).ln();
     let mass_log = mass.max(0.0001).ln();
 
-    ((mass_log - min_log) / (max_log - min_log))
-        .clamp(0.0, 1.0)
+    let x = (mass_log - min_log) / (max_log - min_log);
+
+    let k = 10.0;
+
+    1.0 / (1.0 + (-k * (x - 0.5)).exp())
 }
 
 fn blackbody_color(t: f32) -> [u8; 4] {
