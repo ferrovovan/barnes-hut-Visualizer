@@ -1,6 +1,7 @@
 use std::{
     f32::consts::{PI, TAU},
     sync::atomic::{AtomicBool, Ordering},
+    time::{Duration, Instant},
 };
 
 use crate::{
@@ -79,6 +80,7 @@ pub struct Renderer {
 
     show_bodies: bool,
     show_quadtree: bool,
+    show_stats: bool,
 
     depth_range: (usize, usize),
 
@@ -87,7 +89,9 @@ pub struct Renderer {
     total: Option<f32>,
 
     confirmed_bodies: Option<Body>,
-
+    fps: f32,
+    frame_counter: u32,
+    last_fps_update: Instant,
     bodies: Vec<Body>,
     quadtree: Vec<Node>,
 }
@@ -102,7 +106,7 @@ impl quarkstrom::Renderer for Renderer {
 
             show_bodies: true,
             show_quadtree: false,
-
+            show_stats: true,
             depth_range: (0, 0),
 
             spawn_body: None,
@@ -110,7 +114,9 @@ impl quarkstrom::Renderer for Renderer {
             total: None,
 
             confirmed_bodies: None,
-
+            fps: 0.0,
+            frame_counter: 0,
+            last_fps_update: Instant::now(),
             bodies: Vec::new(),
             quadtree: Vec::new(),
         }
@@ -123,7 +129,9 @@ impl quarkstrom::Renderer for Renderer {
             let val = PAUSED.load(Ordering::Relaxed);
             PAUSED.store(!val, Ordering::Relaxed)
         }
-
+        if input.key_pressed(VirtualKeyCode::F3) {
+            self.show_stats = !self.show_stats;
+        }
         if let Some((mx, my)) = input.mouse() {
             // Scroll steps to double/halve the scale
             let steps = 5.0;
@@ -191,6 +199,15 @@ impl quarkstrom::Renderer for Renderer {
 
     fn render(&mut self, ctx: &mut quarkstrom::RenderContext) {
         {
+            self.frame_counter += 1;
+            let elapsed = self.last_fps_update.elapsed();
+
+            if elapsed >= Duration::from_secs(1) {
+                self.fps = self.frame_counter as f32 / elapsed.as_secs_f32();
+
+                self.frame_counter = 0;
+                self.last_fps_update = Instant::now();
+            }
             let mut lock = UPDATE_LOCK.lock();
             if *lock {
                 std::mem::swap(&mut self.bodies, &mut BODIES.lock());
@@ -329,5 +346,38 @@ impl quarkstrom::Renderer for Renderer {
                     });
                 }
             });
+        if self.show_stats {
+            egui::Window::new("Statistics")
+            .resizable(false)
+            .collapsible(false)
+            .default_pos([10.0, 10.0])
+            .show(ctx, |ui| {
+
+            let body_count = self.bodies.len();
+
+            let total_mass: f32 =
+                self.bodies.iter().map(|b| b.mass).sum();
+
+            let max_mass =
+                self.bodies
+                    .iter()
+                    .map(|b| b.mass)
+                    .fold(0.0_f32, f32::max);
+
+            ui.label(format!("Bodies: {}", body_count));
+            ui.label(format!("FPS: {:.1}", self.fps));
+            ui.label(format!("Quadtree nodes: {}", self.quadtree.len()));
+            ui.label(format!("Scale: {:.2}", self.scale));
+            ui.label(format!("Total mass: {:.2}", total_mass));
+            ui.label(format!("Max mass: {:.2}", max_mass));
+
+            ui.separator();
+
+            ui.label(format!(
+                "Paused: {}",
+                PAUSED.load(Ordering::Relaxed)
+            ));
+            });
+        }
     }
 }
