@@ -1,0 +1,20 @@
+{
+  "name": "Globular Cluster",
+  "star_count": 0,
+  "satellite_count": 1500,
+  "star_mass": 0.0,
+  "satellite_mass_range": [0.8, 2.5],
+  "disk_radius": 200.0,
+  "seed": 42,
+  "theta": 0.6,
+  "epsilon": 0.2,
+  "dt": 0.05,
+  "bodies": [
+    {"name": "Cluster Core", "position": {"x": 0.0, "y": 0.0}, "velocity": {"x": 0.0, "y": 0.0}, "mass": 5000.0, "radius": 15.0}
+  ],
+  "generators": [
+    {"gen_type": "Ring", "center": {"x": 0.0, "y": 0.0}, "central_mass": 5000.0, "count": 1500,
+     "distance_range": [10.0, 150.0], "density_range": [0.5, 2.0], "radius_range": [0.5, 1.2],
+     "base_velocity": {"x": 0.0, "y": 0.0}}
+  ]
+}

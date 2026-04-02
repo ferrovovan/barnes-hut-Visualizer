@@ -1,0 +1,21 @@
+{
+  "name": "Galaxy Collision",
+  "star_count": 0,
+  "satellite_count": 0,
+  "star_mass": 0.0,
+  "satellite_mass_range": [0.0, 0.0],
+  "disk_radius": 0.0,
+  "seed": 42,
+  "theta": 0.8,
+  "epsilon": 0.5,
+  "dt": 0.05,
+  "bodies": [],
+  "generators": [
+    {"gen_type": "Ring", "center": {"x": -500.0, "y": 0.0}, "central_mass": 10000.0, "count": 800,
+     "distance_range": [0.0, 300.0], "density_range": [1.0, 3.0], "radius_range": [0.5, 1.5],
+     "base_velocity": {"x": 80.0, "y": 0.0}},
+    {"gen_type": "Ring", "center": {"x": 500.0, "y": 0.0}, "central_mass": 10000.0, "count": 800,
+     "distance_range": [0.0, 300.0], "density_range": [1.0, 3.0], "radius_range": [0.5, 1.5],
+     "base_velocity": {"x": -80.0, "y": 0.0}}
+  ]
+}
