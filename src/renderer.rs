@@ -3,10 +3,7 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
 };
 
-use crate::{
-    body::Body,
-    quadtree::{Node, Quadtree},
-};
+use crate::{body::Body, gui_state::GuiState, quadtree::Node, scenario_config::SimulationConfig};
 
 use quarkstrom::{egui, winit::event::VirtualKeyCode, winit_input_helper::WinitInputHelper};
 
@@ -24,12 +21,7 @@ fn lerp_color(a: [u8; 4], b: [u8; 4], t: f32) -> [u8; 4] {
     ]
 }
 
-fn normalize_mass(
-    mass: f32,
-    min_mass: f32,
-    max_mass: f32,
-) -> f32 {
-
+fn normalize_mass(mass: f32, min_mass: f32, max_mass: f32) -> f32 {
     let min_log = min_mass.max(0.0001).ln();
     let max_log = max_mass.max(0.0001).ln();
     let mass_log = mass.max(0.0001).ln();
@@ -58,38 +50,71 @@ fn blackbody_color(t: f32) -> [u8; 4] {
         lerp_color(white, blue, (t - 0.75) / 0.25)
     }
 }
-use ultraviolet::Vec2;
 
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
+use rfd::FileDialog;
+use ultraviolet::Vec2;
 
-pub static PAUSED: Lazy<AtomicBool> = Lazy::new(|| false.into());
+pub static PAUSED: Lazy<AtomicBool> = Lazy::new(|| true.into());
 pub static UPDATE_LOCK: Lazy<Mutex<bool>> = Lazy::new(|| Mutex::new(false));
-
 pub static BODIES: Lazy<Mutex<Vec<Body>>> = Lazy::new(|| Mutex::new(Vec::new()));
 pub static QUADTREE: Lazy<Mutex<Vec<Node>>> = Lazy::new(|| Mutex::new(Vec::new()));
-
 pub static SPAWN: Lazy<Mutex<Vec<Body>>> = Lazy::new(|| Mutex::new(Vec::new()));
+pub static RESET_BODIES: Lazy<Mutex<Option<(Vec<Body>, f32, f32, f32)>>> =
+    Lazy::new(|| Mutex::new(None));
+pub static DT: Lazy<Mutex<f32>> = Lazy::new(|| Mutex::new(0.05));
+
+const PRESETS: &[(&str, &str)] = &[
+    ("🌌 Оригинальный диск (100k тел)", ""),
+    (
+        "🪐 Солнечная система (полная)",
+        "presets/11_solar_system_full.json",
+    ),
+    ("⭐ Двойная звезда", "presets/binary_star.json"),
+    ("💥 Столкновение галактик", "presets/galaxy_collision.json"),
+    (
+        "🌀 Аккреционный диск чёрной дыры",
+        "presets/black_hole_accretion.json",
+    ),
+    (
+        "💍 Кольца Сатурна (улучшенные)",
+        "presets/saturn_rings.json",
+    ),
+    ("🔵 Глобулярное скопление", "presets/globular_cluster.json"),
+    (
+        "☄ Солнечная система + комета",
+        "presets/solar_system_comet.json",
+    ),
+    (
+        "🌙 Двойная планета (Земля-Луна)",
+        "presets/double_planet.json",
+    ),
+    ("🔺 Задача трёх тел", "presets/three_body.json"),
+    ("📀 Галактика с перемычкой", "presets/barred_galaxy.json"),
+    (
+        "🌌 Расширяющаяся Вселенная",
+        "presets/expanding_universe.json",
+    ),
+];
 
 pub struct Renderer {
     pos: Vec2,
     scale: f32,
-
     settings_window_open: bool,
-
     show_bodies: bool,
     show_quadtree: bool,
-
     depth_range: (usize, usize),
-
     spawn_body: Option<Body>,
     angle: Option<f32>,
     total: Option<f32>,
-
     confirmed_bodies: Option<Body>,
-
     bodies: Vec<Body>,
     quadtree: Vec<Node>,
+    gui_state: GuiState,
+    dt: f32,
+    preset_window_open: bool,
+    pending_preset: Option<String>,
 }
 
 impl quarkstrom::Renderer for Renderer {
@@ -97,22 +122,20 @@ impl quarkstrom::Renderer for Renderer {
         Self {
             pos: Vec2::zero(),
             scale: 3600.0,
-
-            settings_window_open: false,
-
+            settings_window_open: true,
             show_bodies: true,
             show_quadtree: false,
-
             depth_range: (0, 0),
-
             spawn_body: None,
             angle: None,
             total: None,
-
             confirmed_bodies: None,
-
             bodies: Vec::new(),
             quadtree: Vec::new(),
+            gui_state: GuiState::new(),
+            dt: 0.05,
+            preset_window_open: false,
+            pending_preset: None,
         }
     }
 
@@ -121,28 +144,19 @@ impl quarkstrom::Renderer for Renderer {
 
         if input.key_pressed(VirtualKeyCode::Space) {
             let val = PAUSED.load(Ordering::Relaxed);
-            PAUSED.store(!val, Ordering::Relaxed)
+            PAUSED.store(!val, Ordering::Relaxed);
         }
 
         if let Some((mx, my)) = input.mouse() {
-            // Scroll steps to double/halve the scale
             let steps = 5.0;
-
-            // Modify input
             let zoom = (-input.scroll_diff() / steps).exp2();
-
-            // Screen space -> view space
             let target =
                 Vec2::new(mx * 2.0 - width as f32, height as f32 - my * 2.0) / height as f32;
-
-            // Move view position based on target
             self.pos += target * self.scale * (1.0 - zoom);
-
-            // Zoom
             self.scale *= zoom;
+            self.gui_state.camera_zoom = self.scale;
         }
 
-        // Grab
         if input.mouse_held(2) {
             let (mdx, mdy) = input.mouse_diff();
             self.pos.x -= mdx / height as f32 * self.scale * 2.0;
@@ -187,6 +201,12 @@ impl quarkstrom::Renderer for Renderer {
         } else if input.mouse_released(1) {
             self.confirmed_bodies = self.spawn_body.take();
         }
+
+        if input.mouse_pressed(0) {
+            let mouse_world = world_mouse();
+            self.gui_state
+                .handle_click([mouse_world.x, mouse_world.y], &self.bodies);
+        }
     }
 
     fn render(&mut self, ctx: &mut quarkstrom::RenderContext) {
@@ -195,9 +215,13 @@ impl quarkstrom::Renderer for Renderer {
             if *lock {
                 std::mem::swap(&mut self.bodies, &mut BODIES.lock());
                 std::mem::swap(&mut self.quadtree, &mut QUADTREE.lock());
+                if self.bodies.len() > self.gui_state.names.len() {
+                    self.gui_state.names.resize(self.bodies.len(), None);
+                }
             }
             if let Some(body) = self.confirmed_bodies.take() {
                 self.bodies.push(body);
+                self.gui_state.names.push(None);
                 SPAWN.lock().push(body);
             }
             *lock = false;
@@ -225,11 +249,7 @@ impl quarkstrom::Renderer for Renderer {
 
                 for i in 0..self.bodies.len() {
                     let body = &self.bodies[i];
-                    let t = normalize_mass(
-                        body.mass,
-                        min_mass,
-                        max_mass,
-                    );
+                    let t = normalize_mass(body.mass, min_mass, max_mass);
                     let color = blackbody_color(t);
                     let radius = 1.0 + body.mass.cbrt() * 0.6;
 
@@ -250,84 +270,161 @@ impl quarkstrom::Renderer for Renderer {
             }
         }
 
-        if self.show_quadtree && !self.quadtree.is_empty() {
-            let mut depth_range = self.depth_range;
-            if depth_range.0 >= depth_range.1 {
-                let mut stack = Vec::new();
-                stack.push((Quadtree::ROOT, 0));
-
-                let mut min_depth = usize::MAX;
-                let mut max_depth = 0;
-                while let Some((node, depth)) = stack.pop() {
-                    let node = &self.quadtree[node];
-
-                    if node.is_leaf() {
-                        if depth < min_depth {
-                            min_depth = depth;
-                        }
-                        if depth > max_depth {
-                            max_depth = depth;
-                        }
-                    } else {
-                        for i in 0..4 {
-                            stack.push((node.children + i, depth + 1));
-                        }
-                    }
-                }
-
-                depth_range = (min_depth, max_depth);
-            }
-            let (min_depth, max_depth) = depth_range;
-
-            let mut stack = Vec::new();
-            stack.push((Quadtree::ROOT, 0));
-            while let Some((node, depth)) = stack.pop() {
-                let node = &self.quadtree[node];
-
-                if node.is_branch() && depth < max_depth {
-                    for i in 0..4 {
-                        stack.push((node.children + i, depth + 1));
-                    }
-                } else if depth >= min_depth {
-                    let quad = node.quad;
-                    let half = Vec2::new(0.5, 0.5) * quad.size;
-                    let min = quad.center - half;
-                    let max = quad.center + half;
-
-                    let t = ((depth - min_depth + !node.is_empty() as usize) as f32)
-                        / (max_depth - min_depth + 1) as f32;
-
-                    let start_h = -100.0;
-                    let end_h = 80.0;
-                    let h = start_h + (end_h - start_h) * t;
-                    let s = 100.0;
-                    let l = t * 100.0;
-
-                    let c = Hsluv::new(h, s, l);
-                    let rgba: Rgba = c.into_color();
-                    let color = rgba.into_format().into();
-
-                    ctx.draw_rect(min, max, color);
-                }
-            }
+        if let Some(body) = &self.confirmed_bodies {
+            ctx.draw_circle(body.pos, body.radius, [0xff; 4]);
+            ctx.draw_line(body.pos, body.pos + body.vel, [0xff; 4]);
+        }
+        if let Some(body) = &self.spawn_body {
+            ctx.draw_circle(body.pos, body.radius, [0xff; 4]);
+            ctx.draw_line(body.pos, body.pos + body.vel, [0xff; 4]);
         }
     }
 
     fn gui(&mut self, ctx: &quarkstrom::egui::Context) {
-        egui::Window::new("")
-            .open(&mut self.settings_window_open)
+        ctx.set_pixels_per_point(1.0);
+
+        let mut settings_open = self.settings_window_open;
+        let mut show_bodies = self.show_bodies;
+
+        egui::Window::new("Barnes-Hut Launcher")
+            .open(&mut settings_open)
             .show(ctx, |ui| {
-                ui.checkbox(&mut self.show_bodies, "Show Bodies");
-                ui.checkbox(&mut self.show_quadtree, "Show Quadtree");
-                if self.show_quadtree {
-                    let range = &mut self.depth_range;
-                    ui.horizontal(|ui| {
-                        ui.label("Depth Range:");
-                        ui.add(egui::DragValue::new(&mut range.0).speed(0.05));
-                        ui.label("to");
-                        ui.add(egui::DragValue::new(&mut range.1).speed(0.05));
-                    });
+                ui.checkbox(&mut show_bodies, "Show Bodies");
+                let is_paused = PAUSED.load(Ordering::Relaxed);
+                if ui
+                    .button(if is_paused {
+                        "▶ Запустить"
+                    } else {
+                        "⏸ Пауза"
+                    })
+                    .clicked()
+                {
+                    PAUSED.store(!is_paused, Ordering::Relaxed);
+                }
+                ui.separator();
+                ui.add(egui::Slider::new(&mut self.dt, 0.01..=2.0).text("Δt (time step)"));
+                if ui.button("Apply Δt").clicked() {
+                    *DT.lock() = self.dt;
+                }
+                ui.separator();
+                if ui.button("📋 Сценарии").clicked() {
+                    self.preset_window_open = true;
+                }
+                if ui.button("📂 Загрузить свой пресет").clicked() {
+                    if let Some(path) = FileDialog::new().add_filter("JSON", &["json"]).pick_file()
+                    {
+                        let path_str = path.to_string_lossy().to_string();
+                        self.load_preset(&path_str);
+                    }
+                }
+                ui.separator();
+                if let Some(idx) = self.gui_state.selected_body_index {
+                    if idx < self.bodies.len() && idx < self.gui_state.names.len() {
+                        if let Some(name) = &self.gui_state.names[idx] {
+                            let body = &self.bodies[idx];
+                            ui.label(format!("Selected: {}", name));
+                            ui.label(format!("Mass: {:.2}", body.mass));
+                            ui.label(format!("Radius: {:.2}", body.radius));
+                            ui.label(format!("Position: ({:.1}, {:.1})", body.pos.x, body.pos.y));
+                            ui.label(format!("Velocity: ({:.1}, {:.1})", body.vel.x, body.vel.y));
+                        } else {
+                            ui.label("Selected object has no name");
+                        }
+                    } else {
+                        ui.label("Selected index out of range");
+                    }
+                } else {
+                    ui.label("Click on an object (LMB) to see info");
                 }
             });
+
+        self.settings_window_open = settings_open;
+        self.show_bodies = show_bodies;
+
+        // Окно выбора сценариев (без захвата open)
+        if self.preset_window_open {
+            let mut open = true;
+            egui::Window::new("Выбор сценария")
+                .open(&mut open)
+                .resizable(false)
+                .show(ctx, |ui| {
+                    ui.set_width(300.0);
+                    for (name, path) in PRESETS {
+                        if ui.button(*name).clicked() {
+                            self.pending_preset = Some(path.to_string());
+                        }
+                    }
+                });
+            // Закрываем окно после обработки
+            if !open {
+                self.preset_window_open = false;
+            }
+        }
+
+        // Отложенная загрузка
+        if let Some(preset_path) = self.pending_preset.take() {
+            if preset_path.is_empty() {
+                self.load_uniform_disc();
+            } else {
+                self.load_preset(&preset_path);
+            }
+        }
+    }
+}
+
+impl Renderer {
+    fn load_preset(&mut self, path: &str) {
+        println!("Попытка загрузки пресета: {}", path);
+        if let Ok(content) = std::fs::read_to_string(path) {
+            if let Ok(config) = serde_json::from_str::<SimulationConfig>(&content) {
+                let (new_bodies, names) = config.into_particles();
+                self.apply_new_bodies(new_bodies, names);
+                println!(">>> УСПЕХ: Пресет загружен!");
+            } else {
+                eprintln!("!!! ОШИБКА: Неверный формат JSON.");
+            }
+        } else {
+            eprintln!("!!! ОШИБКА: Файл не найден: {}", path);
+        }
+    }
+
+    fn load_uniform_disc(&mut self) {
+        use crate::utils;
+        let new_bodies = utils::uniform_disc(100000);
+        let names = vec![None; new_bodies.len()];
+        self.apply_new_bodies(new_bodies, names);
+        println!(">>> Загружен оригинальный диск (100k тел)");
+    }
+
+    fn apply_new_bodies(&mut self, new_bodies: Vec<Body>, names: Vec<Option<String>>) {
+        self.gui_state.names = names;
+        self.gui_state.selected_body_index = None;
+
+        if !new_bodies.is_empty() {
+            let mut min_x = f32::MAX;
+            let mut min_y = f32::MAX;
+            let mut max_x = f32::MIN;
+            let mut max_y = f32::MIN;
+            for body in &new_bodies {
+                min_x = min_x.min(body.pos.x);
+                min_y = min_y.min(body.pos.y);
+                max_x = max_x.max(body.pos.x);
+                max_y = max_y.max(body.pos.y);
+            }
+            let width = (max_x - min_x).abs();
+            let height = (max_y - min_y).abs();
+            let needed_scale = (height.max(width) / 0.8) / 2.0;
+            self.scale = needed_scale.max(100.0);
+            self.pos = Vec2::new((min_x + max_x) / 2.0, (min_y + max_y) / 2.0);
+        } else {
+            self.scale = 3600.0;
+            self.pos = Vec2::zero();
+        }
+
+        let theta = 1.0;
+        let epsilon = 1.0;
+        let dt = self.dt;
+        *RESET_BODIES.lock() = Some((new_bodies, theta, epsilon, dt));
+        PAUSED.store(false, Ordering::SeqCst);
     }
 }
