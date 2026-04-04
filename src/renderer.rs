@@ -1,6 +1,7 @@
 use std::{
     f32::consts::{PI, TAU},
     sync::atomic::{AtomicBool, Ordering},
+    time::{Duration, Instant},
 };
 
 use crate::{body::Body, gui_state::GuiState, quadtree::Node, scenario_config::SimulationConfig};
@@ -104,11 +105,19 @@ pub struct Renderer {
     settings_window_open: bool,
     show_bodies: bool,
     show_quadtree: bool,
+    show_stats: bool,
+
     depth_range: (usize, usize),
     spawn_body: Option<Body>,
     angle: Option<f32>,
     total: Option<f32>,
     confirmed_bodies: Option<Body>,
+
+    simulation_updates: u64,
+    fps: f32,
+    frame_counter: u32,
+    last_fps_update: Instant,
+
     bodies: Vec<Body>,
     quadtree: Vec<Node>,
     gui_state: GuiState,
@@ -125,11 +134,19 @@ impl quarkstrom::Renderer for Renderer {
             settings_window_open: true,
             show_bodies: true,
             show_quadtree: false,
+            show_stats: true,
+
             depth_range: (0, 0),
             spawn_body: None,
             angle: None,
             total: None,
             confirmed_bodies: None,
+
+            simulation_updates: 0,
+            fps: 0.0,
+            frame_counter: 0,
+            last_fps_update: Instant::now(),
+
             bodies: Vec::new(),
             quadtree: Vec::new(),
             gui_state: GuiState::new(),
@@ -146,7 +163,9 @@ impl quarkstrom::Renderer for Renderer {
             let val = PAUSED.load(Ordering::Relaxed);
             PAUSED.store(!val, Ordering::Relaxed);
         }
-
+        if input.key_pressed(VirtualKeyCode::F3) {
+            self.show_stats = !self.show_stats;
+        }
         if let Some((mx, my)) = input.mouse() {
             let steps = 5.0;
             let zoom = (-input.scroll_diff() / steps).exp2();
@@ -211,8 +230,18 @@ impl quarkstrom::Renderer for Renderer {
 
     fn render(&mut self, ctx: &mut quarkstrom::RenderContext) {
         {
+            self.frame_counter += 1;
+            let elapsed = self.last_fps_update.elapsed();
+
+            if elapsed >= Duration::from_secs(1) {
+                self.fps = self.frame_counter as f32 / elapsed.as_secs_f32();
+
+                self.frame_counter = 0;
+                self.last_fps_update = Instant::now();
+            }
             let mut lock = UPDATE_LOCK.lock();
             if *lock {
+                self.simulation_updates += 1;
                 std::mem::swap(&mut self.bodies, &mut BODIES.lock());
                 std::mem::swap(&mut self.quadtree, &mut QUADTREE.lock());
                 if self.bodies.len() > self.gui_state.names.len() {
@@ -368,6 +397,32 @@ impl quarkstrom::Renderer for Renderer {
             } else {
                 self.load_preset(&preset_path);
             }
+        }
+
+        if self.show_stats {
+            egui::Window::new("Statistics")
+                .resizable(false)
+                .collapsible(false)
+                .default_pos([10.0, 10.0])
+                .show(ctx, |ui| {
+                    let body_count = self.bodies.len();
+
+                    let total_mass: f32 = self.bodies.iter().map(|b| b.mass).sum();
+
+                    let max_mass = self.bodies.iter().map(|b| b.mass).fold(0.0_f32, f32::max);
+
+                    ui.label(format!("Bodies: {}", body_count));
+                    ui.label(format!("FPS: {:.1}", self.fps));
+                    ui.label(format!("Simulation updates: {}", self.simulation_updates));
+                    ui.label(format!("Quadtree nodes: {}", self.quadtree.len()));
+                    ui.label(format!("Scale: {:.2}", self.scale));
+                    ui.label(format!("Total mass: {:.2}", total_mass));
+                    ui.label(format!("Max mass: {:.2}", max_mass));
+
+                    ui.separator();
+
+                    ui.label(format!("Paused: {}", PAUSED.load(Ordering::Relaxed)));
+                });
         }
     }
 }
