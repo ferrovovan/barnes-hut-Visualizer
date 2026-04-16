@@ -59,9 +59,12 @@ use ultraviolet::Vec2;
 
 pub static PAUSED: Lazy<AtomicBool> = Lazy::new(|| true.into());
 pub static UPDATE_LOCK: Lazy<Mutex<bool>> = Lazy::new(|| Mutex::new(false));
+
 pub static BODIES: Lazy<Mutex<Vec<Body>>> = Lazy::new(|| Mutex::new(Vec::new()));
 pub static QUADTREE: Lazy<Mutex<Vec<Node>>> = Lazy::new(|| Mutex::new(Vec::new()));
+
 pub static SPAWN: Lazy<Mutex<Vec<Body>>> = Lazy::new(|| Mutex::new(Vec::new()));
+
 pub static RESET_BODIES: Lazy<Mutex<Option<(Vec<Body>, f32, f32, f32)>>> =
     Lazy::new(|| Mutex::new(None));
 pub static DT: Lazy<Mutex<f32>> = Lazy::new(|| Mutex::new(0.05));
@@ -286,6 +289,7 @@ impl quarkstrom::Renderer for Renderer {
                 }
             }
 
+            // Создание тела
             if let Some(body) = &self.confirmed_bodies {
                 let color = blackbody_color(1.0);
                 ctx.draw_circle(body.pos, body.radius, color);
@@ -299,13 +303,67 @@ impl quarkstrom::Renderer for Renderer {
             }
         }
 
-        if let Some(body) = &self.confirmed_bodies {
-            ctx.draw_circle(body.pos, body.radius, [0xff; 4]);
-            ctx.draw_line(body.pos, body.pos + body.vel, [0xff; 4]);
-        }
-        if let Some(body) = &self.spawn_body {
-            ctx.draw_circle(body.pos, body.radius, [0xff; 4]);
-            ctx.draw_line(body.pos, body.pos + body.vel, [0xff; 4]);
+        // ── Отображение квадродерева ──────────────────────────────
+        if self.show_quadtree && !self.quadtree.is_empty() {
+            let mut depth_range = self.depth_range;
+
+            // Автоматически вычисляем диапазон глубин листьев, если он ещё не задан
+            if depth_range.0 >= depth_range.1 {
+                let mut stack = Vec::new();
+                stack.push((0usize, 0)); // корень всегда с индексом 0
+
+                let mut min_depth = usize::MAX;
+                let mut max_depth = 0;
+
+                while let Some((node_idx, depth)) = stack.pop() {
+                    let node = &self.quadtree[node_idx];
+
+                    if node.is_leaf() {
+                        min_depth = min_depth.min(depth);
+                        max_depth = max_depth.max(depth);
+                    } else {
+                        for i in 0..4 {
+                            stack.push((node.children + i, depth + 1));
+                        }
+                    }
+                }
+
+                depth_range = (min_depth, max_depth);
+            }
+
+            let (min_depth, max_depth) = depth_range;
+            let mut stack = Vec::new();
+            stack.push((0usize, 0));
+
+            while let Some((node_idx, depth)) = stack.pop() {
+                let node = &self.quadtree[node_idx];
+
+                if node.is_branch() && depth < max_depth {
+                    for i in 0..4 {
+                        stack.push((node.children + i, depth + 1));
+                    }
+                } else if depth >= min_depth {
+                    let quad = node.quad;
+                    let half = Vec2::new(0.5, 0.5) * quad.size;
+                    let min = quad.center - half;
+                    let max = quad.center + half;
+
+                    let t = ((depth - min_depth + !node.is_empty() as usize) as f32)
+                        / (max_depth - min_depth + 1) as f32;
+
+                    let start_h = -100.0;
+                    let end_h = 80.0;
+                    let h = start_h + (end_h - start_h) * t;
+                    let s = 100.0;
+                    let l = t * 100.0;
+
+                    let c = Hsluv::new(h, s, l);
+                    let rgba: Rgba = c.into_color();
+                    let color = rgba.into_format().into();
+
+                    ctx.draw_rect(min, max, color);
+                }
+            }
         }
     }
 
@@ -313,12 +371,21 @@ impl quarkstrom::Renderer for Renderer {
         ctx.set_pixels_per_point(1.0);
 
         let mut settings_open = self.settings_window_open;
-        let mut show_bodies = self.show_bodies;
-
         egui::Window::new("Barnes-Hut Launcher")
             .open(&mut settings_open)
             .show(ctx, |ui| {
-                ui.checkbox(&mut show_bodies, "Show Bodies");
+                ui.checkbox(&mut self.show_bodies, "Show Bodies");
+                ui.checkbox(&mut self.show_quadtree, "Show Quadtree");
+                if self.show_quadtree {
+                    let range = &mut self.depth_range;
+                    ui.horizontal(|ui| {
+                        ui.label("Depth Range:");
+                        ui.add(egui::DragValue::new(&mut range.0).speed(0.05));
+                        ui.label("to");
+                        ui.add(egui::DragValue::new(&mut range.1).speed(0.05));
+                    });
+                }
+
                 let is_paused = PAUSED.load(Ordering::Relaxed);
                 if ui
                     .button(if is_paused {
@@ -330,12 +397,16 @@ impl quarkstrom::Renderer for Renderer {
                 {
                     PAUSED.store(!is_paused, Ordering::Relaxed);
                 }
+
                 ui.separator();
+
                 ui.add(egui::Slider::new(&mut self.dt, 0.01..=2.0).text("Δt (time step)"));
                 if ui.button("Apply Δt").clicked() {
                     *DT.lock() = self.dt;
                 }
+
                 ui.separator();
+
                 if ui.button("📋 Сценарии").clicked() {
                     self.preset_window_open = true;
                 }
@@ -366,9 +437,7 @@ impl quarkstrom::Renderer for Renderer {
                     ui.label("Click on an object (LMB) to see info");
                 }
             });
-
         self.settings_window_open = settings_open;
-        self.show_bodies = show_bodies;
 
         // Окно выбора сценариев (без захвата open)
         if self.preset_window_open {
