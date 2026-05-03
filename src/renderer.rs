@@ -105,10 +105,13 @@ const PRESETS: &[(&str, &str)] = &[
 pub struct Renderer {
     pos: Vec2,
     scale: f32,
+
+    // GUI variables
     settings_window_open: bool,
     show_bodies: bool,
     show_quadtree: bool,
     show_stats: bool,
+    show_help: bool,
 
     depth_range: (usize, usize),
     spawn_body: Option<Body>,
@@ -134,10 +137,13 @@ impl quarkstrom::Renderer for Renderer {
         Self {
             pos: Vec2::zero(),
             scale: 3600.0,
+
+            // GUI variables
             settings_window_open: true,
             show_bodies: true,
             show_quadtree: false,
             show_stats: false,
+            show_help: false,
 
             depth_range: (0, 0),
             spawn_body: None,
@@ -469,6 +475,18 @@ impl quarkstrom::Renderer for Renderer {
             }
         }
 
+        // окошко для высвечивания подсказки
+        egui::Area::new("help_button")
+            .anchor(egui::Align2::RIGHT_TOP, egui::vec2(-16.0, 16.0)) // отступ от краёв
+            .interactable(true)
+            .movable(false)
+            .order(egui::Order::Foreground)
+            .show(ctx, |ui| {
+                if ui.button("⚙️ Помощь").clicked() {
+                    self.show_help = !self.show_help;
+                }
+            });
+
         if self.show_stats {
             let screen_right_x = ctx.screen_rect().right();
             egui::Window::new("Statistics")
@@ -489,6 +507,28 @@ impl quarkstrom::Renderer for Renderer {
                     ui.label(format!("Max mass: {:.2}", max_mass));
                     ui.separator();
                     ui.label(format!("Paused: {}", PAUSED.load(Ordering::Relaxed)));
+                });
+        }
+
+        // Окошко с подсказками по управлению
+        if self.show_help {
+            let help_width = ctx.screen_rect().width() * 2.0 / 3.0;
+            let help_height = ctx.screen_rect().height() * 1.5 / 3.0;
+            egui::Window::new("Подсказка")
+                .anchor(egui::Align2::CENTER_CENTER, egui::Vec2::ZERO)
+                .fixed_size(egui::vec2(help_width, help_height))
+                .collapsible(false)
+                .resizable(false)
+                .open(&mut self.show_help)
+                .show(ctx, |ui| {
+                    ui.vertical_centered(|ui| {
+                        ui.label("• Scroll to zoom   |   Прокрутка для масштабирования");
+                        ui.label("• Middle mouse button to grab view   |   Средняя кнопка мыши для захвата области просмотра");
+                        ui.label("• Right mouse button to spawn a body   |   Правая кнопка мыши для создания объекта");
+                        ui.label("• To change the mass of the body, wind the mouse around it while holding right click   |   Чтобы изменить массу объекта, вращайте мышь вокруг него, удерживая правую кнопку мыши");
+                        ui.label("• Space to pause/continue   |   Пробел для паузы/продолжения");
+                        ui.label("• E to open a menu where you can enable the quadtree visualization   |   E для открытия меню, где можно включить визуализацию квадродерева");
+                    });
                 });
         }
     }
