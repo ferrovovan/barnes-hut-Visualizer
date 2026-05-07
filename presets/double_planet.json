@@ -1,5 +1,6 @@
 {
   "name": "Double Planet (Earth-Moon)",
+  "kind": "Custom",
   "star_count": 0,
   "satellite_count": 0,
   "star_mass": 0.0,
@@ -8,14 +9,22 @@
   "seed": 42,
   "theta": 0.7,
   "epsilon": 0.3,
-  "dt": 0.05,
+  "dt": 0.00025,
   "bodies": [
-    {"name": "Earth", "position": {"x": -50.0, "y": 0.0}, "velocity": {"x": 0.0, "y": 15.0}, "mass": 100.0, "radius": 5.0},
-    {"name": "Moon", "position": {"x": 50.0, "y": 0.0}, "velocity": {"x": 0.0, "y": -15.0}, "mass": 1.0, "radius": 1.5}
+    {
+      "name": "Earth",
+      "position": {"x": 0.0, "y": 0.0},
+      "velocity": {"x": 0.0, "y": 0.0},
+      "mass": 1000000.0,
+      "radius": 300.0
+    },
+    {
+      "name": "Moon",
+      "position": {"x": 400.0, "y": 0.0},
+      "velocity": {"x": 0.0, "y": 50.0},
+      "mass": 1000.0,
+      "radius": 50.0
+    }
   ],
-  "generators": [
-    {"gen_type": "Ring", "center": {"x": 0.0, "y": 0.0}, "central_mass": 101.0, "count": 100,
-     "distance_range": [100.0, 200.0], "density_range": [0.1, 0.5], "radius_range": [0.3, 0.8],
-     "base_velocity": {"x": 0.0, "y": 0.0}}
-  ]
+  "generators": []
 }

@@ -1,5 +1,6 @@
 {
-  "name": "Three-Body Problem",
+  "name": "Barred Galaxy",
+  "kind": "Custom",
   "star_count": 0,
   "satellite_count": 0,
   "star_mass": 0.0,
@@ -8,11 +9,22 @@
   "seed": 42,
   "theta": 0.5,
   "epsilon": 0.1,
-  "dt": 0.02,
+  "dt": 0.1,
   "bodies": [
-    {"name": "Body A", "position": {"x": 100.0, "y": 0.0}, "velocity": {"x": 0.0, "y": 50.0}, "mass": 1000.0, "radius": 8.0},
-    {"name": "Body B", "position": {"x": -50.0, "y": 86.6}, "velocity": {"x": -43.3, "y": -25.0}, "mass": 1000.0, "radius": 8.0},
-    {"name": "Body C", "position": {"x": -50.0, "y": -86.6}, "velocity": {"x": 43.3, "y": -25.0}, "mass": 1000.0, "radius": 8.0}
+    {"name": "Galaxy Core", "position": {"x": 0.0, "y": 0.0}, "velocity": {"x": 0.0, "y": 0.0}, "mass": 2000000.0, "radius": 25.0},
+    {"name": "Bar Left", "position": {"x": -150.0, "y": 0.0}, "velocity": {"x": 0.0, "y": -115.47}, "mass": 300000.0, "radius": 12.0},
+    {"name": "Bar Right", "position": {"x": 150.0, "y": 0.0}, "velocity": {"x": 0.0, "y": 115.47}, "mass": 300000.0, "radius": 12.0}
   ],
-  "generators": []
+  "generators": [
+    {
+      "gen_type": "Ring",
+      "center": {"x": 0.0, "y": 0.0},
+      "central_mass": 2600000.0,
+      "count": 8000,
+      "distance_range": [350.0, 1500.0],
+      "density_range": [0.1, 0.5],
+      "radius_range": [0.4, 1.2],
+      "base_velocity": {"x": 0.0, "y": 0.0}
+    }
+  ]
 }
