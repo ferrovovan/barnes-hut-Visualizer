@@ -22,35 +22,23 @@ fn lerp_color(a: [u8; 4], b: [u8; 4], t: f32) -> [u8; 4] {
     ]
 }
 
-fn normalize_mass(mass: f32, min_mass: f32, max_mass: f32) -> f32 {
-    let min_log = min_mass.max(0.0001).ln();
-    let max_log = max_mass.max(0.0001).ln();
-    let mass_log = mass.max(0.0001).ln();
-
-    let x = (mass_log - min_log) / (max_log - min_log);
-
-    let k = 10.0;
-
-    1.0 / (1.0 + (-k * (x - 0.5)).exp())
+fn relative_mass(mass: f32) -> f32 {
+    mass.max(1.0).log10() - 8.5
 }
 
-fn blackbody_color(t: f32) -> [u8; 4] {
-    let red = [255, 80, 0, 255];
-    let orange = [255, 140, 0, 255];
-    let yellow = [255, 220, 120, 255];
-    let white = [255, 255, 255, 255];
-    let blue = [160, 200, 255, 255];
-
-    if t < 0.25 {
-        lerp_color(red, orange, t / 0.25)
-    } else if t < 0.5 {
-        lerp_color(orange, yellow, (t - 0.25) / 0.25)
-    } else if t < 0.75 {
-        lerp_color(yellow, white, (t - 0.5) / 0.25)
-    } else {
-        lerp_color(white, blue, (t - 0.75) / 0.25)
+fn body_color(mass: f32) -> [u8; 4] {
+    match mass {
+        m if m < 2.0 => [220,220,220,255],
+        m if m < 20.0 => [120,120,120,255],
+        m if m < 100.0 => [0,120,255,255],
+        m if m < 1000.0 => [140,220,255,255],
+        m if m < 10000.0 => [255,190,120,255],
+        m if m < 100000.0 => [255,220,0,255],
+        _ => [255,120,0,255],
     }
 }
+
+
 
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
@@ -266,22 +254,9 @@ impl quarkstrom::Renderer for Renderer {
 
         if !self.bodies.is_empty() {
             if self.show_bodies {
-                let min_mass = self
-                    .bodies
-                    .iter()
-                    .map(|b| b.mass)
-                    .fold(f32::INFINITY, f32::min);
-
-                let max_mass = self
-                    .bodies
-                    .iter()
-                    .map(|b| b.mass)
-                    .fold(f32::NEG_INFINITY, f32::max);
-
                 for i in 0..self.bodies.len() {
                     let body = &self.bodies[i];
-                    let t = normalize_mass(body.mass, min_mass, max_mass);
-                    let color = blackbody_color(t);
+                    let color = body_color(body.mass);
                     let radius = 1.0 + body.mass.cbrt() * 0.6;
 
                     ctx.draw_circle(body.pos, radius, color);
@@ -290,13 +265,13 @@ impl quarkstrom::Renderer for Renderer {
 
             // Создание тела
             if let Some(body) = &self.confirmed_bodies {
-                let color = blackbody_color(1.0);
+                let color = body_color(body.mass);
                 ctx.draw_circle(body.pos, body.radius, color);
                 ctx.draw_line(body.pos, body.pos + body.vel, [0xff; 4]);
             }
 
             if let Some(body) = &self.spawn_body {
-                let color = blackbody_color(1.0);
+                let color = body_color(body.mass);
                 ctx.draw_circle(body.pos, body.radius, color);
                 ctx.draw_line(body.pos, body.pos + body.vel, [0xff; 4]);
             }
