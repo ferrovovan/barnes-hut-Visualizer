@@ -28,17 +28,15 @@ fn relative_mass(mass: f32) -> f32 {
 
 fn body_color(mass: f32) -> [u8; 4] {
     match mass {
-        m if m < 2.0 => [220,220,220,255],
-        m if m < 20.0 => [120,120,120,255],
-        m if m < 100.0 => [0,120,255,255],
-        m if m < 1000.0 => [140,220,255,255],
-        m if m < 10000.0 => [255,190,120,255],
-        m if m < 100000.0 => [255,220,0,255],
-        _ => [255,120,0,255],
+        m if m < 2.0 => [220, 220, 220, 255],
+        m if m < 20.0 => [120, 120, 120, 255],
+        m if m < 100.0 => [0, 120, 255, 255],
+        m if m < 1000.0 => [140, 220, 255, 255],
+        m if m < 10000.0 => [255, 190, 120, 255],
+        m if m < 100000.0 => [255, 220, 0, 255],
+        _ => [255, 120, 0, 255],
     }
 }
-
-
 
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
@@ -263,7 +261,7 @@ impl quarkstrom::Renderer for Renderer {
                 for i in 0..self.bodies.len() {
                     let body = &self.bodies[i];
                     let color = body_color(body.mass);
-                    let radius = 1.0 + body.mass.cbrt() * 0.6;
+                    let radius = body.radius;
 
                     ctx.draw_circle(body.pos, radius, color);
                 }
