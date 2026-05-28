@@ -1,3 +1,4 @@
+use crate::language::t;
 use std::{
     f32::consts::{PI, TAU},
     sync::atomic::{AtomicBool, Ordering},
@@ -349,18 +350,18 @@ impl quarkstrom::Renderer for Renderer {
         ctx.set_pixels_per_point(1.0);
 
         let mut settings_open = self.settings_window_open;
-        egui::Window::new("Barnes-Hut Launcher")
+        egui::Window::new(t("window_title"))
             .open(&mut settings_open)
             .show(ctx, |ui| {
-                ui.checkbox(&mut self.show_bodies, "Show Bodies");
-                ui.checkbox(&mut self.show_quadtree, "Show Quadtree");
-                ui.checkbox(&mut self.show_stats, "Show Statistics");
+                ui.checkbox(&mut self.show_bodies, t("show_bodies"));
+                ui.checkbox(&mut self.show_quadtree, t("show_quadtree"));
+                ui.checkbox(&mut self.show_stats, t("show_statistics"));
                 if self.show_quadtree {
                     let range = &mut self.depth_range;
                     ui.horizontal(|ui| {
-                        ui.label("Depth Range:");
+                        ui.label(t("depth_range_label"));
                         ui.add(egui::DragValue::new(&mut range.0).speed(0.05));
-                        ui.label("to");
+                        ui.label(t("depth_range_to"));
                         ui.add(egui::DragValue::new(&mut range.1).speed(0.05));
                     });
                 }
@@ -368,9 +369,9 @@ impl quarkstrom::Renderer for Renderer {
                 let is_paused = PAUSED.load(Ordering::Relaxed);
                 if ui
                     .button(if is_paused {
-                        "▶ Запустить"
+                        t("button_start")
                     } else {
-                        "⏸ Пауза"
+                        t("button_pause")
                     })
                     .clicked()
                 {
@@ -379,17 +380,17 @@ impl quarkstrom::Renderer for Renderer {
 
                 ui.separator();
 
-                ui.add(egui::Slider::new(&mut self.dt, 0.01..=2.0).text("Δt (time step)"));
-                if ui.button("Apply Δt").clicked() {
+                ui.add(egui::Slider::new(&mut self.dt, 0.01..=2.0).text(t("dt_label")));
+                if ui.button(t("apply_dt")).clicked() {
                     *DT.lock() = self.dt;
                 }
 
                 ui.separator();
 
-                if ui.button("📋 Сценарии").clicked() {
+                if ui.button(t("button_presets")).clicked() {
                     self.preset_window_open = true;
                 }
-                if ui.button("📂 Загрузить свой пресет").clicked() {
+                if ui.button(t("button_load_preset")).clicked() {
                     if let Some(path) = FileDialog::new().add_filter("JSON", &["json"]).pick_file()
                     {
                         let path_str = path.to_string_lossy().to_string();
@@ -401,19 +402,29 @@ impl quarkstrom::Renderer for Renderer {
                     if idx < self.bodies.len() && idx < self.gui_state.names.len() {
                         if let Some(name) = &self.gui_state.names[idx] {
                             let body = &self.bodies[idx];
-                            ui.label(format!("Selected: {}", name));
-                            ui.label(format!("Mass: {:.2}", body.mass));
-                            ui.label(format!("Radius: {:.2}", body.radius));
-                            ui.label(format!("Position: ({:.1}, {:.1})", body.pos.x, body.pos.y));
-                            ui.label(format!("Velocity: ({:.1}, {:.1})", body.vel.x, body.vel.y));
+                            ui.label(format!("{} {}", t("selected_prefix"), name));
+                            ui.label(format!("{} {:.2}", t("mass_label"), body.mass));
+                            ui.label(format!("{} {:.2}", t("radius_label"), body.radius));
+                            ui.label(format!(
+                                "{} ({:.1}, {:.1})",
+                                t("position_label"),
+                                body.pos.x,
+                                body.pos.y
+                            ));
+                            ui.label(format!(
+                                "{} ({:.1}, {:.1})",
+                                t("velocity_label"),
+                                body.vel.x,
+                                body.vel.y
+                            ));
                         } else {
-                            ui.label("Selected object has no name");
+                            ui.label(t("no_name"));
                         }
                     } else {
-                        ui.label("Selected index out of range");
+                        ui.label(t("out_of_range"));
                     }
                 } else {
-                    ui.label("Click on an object (LMB) to see info");
+                    ui.label(t("click_info"));
                 }
             });
         self.settings_window_open = settings_open;
@@ -421,7 +432,7 @@ impl quarkstrom::Renderer for Renderer {
         // Окно выбора сценариев (без захвата open)
         if self.preset_window_open {
             let mut open = true;
-            egui::Window::new("Выбор сценария")
+            egui::Window::new(t("scenario_window_title"))
                 .open(&mut open)
                 .resizable(false)
                 .show(ctx, |ui| {
@@ -454,14 +465,14 @@ impl quarkstrom::Renderer for Renderer {
             .movable(false)
             .order(egui::Order::Foreground)
             .show(ctx, |ui| {
-                if ui.button("⚙️ Помощь").clicked() {
+                if ui.button(t("button_help")).clicked() {
                     self.show_help = !self.show_help;
                 }
             });
 
         if self.show_stats {
             let screen_right_x = ctx.screen_rect().right();
-            egui::Window::new("Statistics")
+            egui::Window::new(t("stats_window_title"))
                 .resizable(false)
                 .collapsible(false)
                 .fixed_pos(egui::pos2(screen_right_x - 300.0, 10.0))
@@ -470,15 +481,27 @@ impl quarkstrom::Renderer for Renderer {
                     let total_mass: f32 = self.bodies.iter().map(|b| b.mass).sum();
                     let max_mass = self.bodies.iter().map(|b| b.mass).fold(0.0_f32, f32::max);
 
-                    ui.label(format!("Bodies: {}", self.bodies.len()));
-                    ui.label(format!("FPS: {:.1}", self.fps));
-                    ui.label(format!("Simulation updates: {}", self.simulation_updates));
-                    ui.label(format!("Quadtree nodes: {}", self.quadtree.len()));
-                    ui.label(format!("Scale: {:.2}", self.scale));
-                    ui.label(format!("Total mass: {:.2}", total_mass));
-                    ui.label(format!("Max mass: {:.2}", max_mass));
+                    ui.label(format!("{} {}", t("stats_bodies"), self.bodies.len()));
+                    ui.label(format!("{} {:.1}", t("stats_fps"), self.fps));
+                    ui.label(format!(
+                        "{} {}",
+                        t("stats_updates"),
+                        self.simulation_updates
+                    ));
+                    ui.label(format!(
+                        "{} {}",
+                        t("stats_quadtree_nodes"),
+                        self.quadtree.len()
+                    ));
+                    ui.label(format!("{} {:.2}", t("stats_scale"), self.scale));
+                    ui.label(format!("{} {:.2}", t("stats_total_mass"), total_mass));
+                    ui.label(format!("{} {:.2}", t("stats_max_mass"), max_mass));
                     ui.separator();
-                    ui.label(format!("Paused: {}", PAUSED.load(Ordering::Relaxed)));
+                    ui.label(format!(
+                        "{} {}",
+                        t("stats_paused"),
+                        PAUSED.load(Ordering::Relaxed)
+                    ));
                 });
         }
 
@@ -486,7 +509,7 @@ impl quarkstrom::Renderer for Renderer {
         if self.show_help {
             let help_width = ctx.screen_rect().width() * 2.0 / 3.0;
             let help_height = ctx.screen_rect().height() * 1.5 / 3.0;
-            egui::Window::new("Подсказка")
+            egui::Window::new(t("help_window_title"))
                 .anchor(egui::Align2::CENTER_CENTER, egui::Vec2::ZERO)
                 .fixed_size(egui::vec2(help_width, help_height))
                 .collapsible(false)
@@ -494,12 +517,7 @@ impl quarkstrom::Renderer for Renderer {
                 .open(&mut self.show_help)
                 .show(ctx, |ui| {
                     ui.vertical_centered(|ui| {
-                        ui.label("• Scroll to zoom   |   Прокрутка для масштабирования");
-                        ui.label("• Middle mouse button to grab view   |   Средняя кнопка мыши для захвата области просмотра");
-                        ui.label("• Right mouse button to spawn a body   |   Правая кнопка мыши для создания объекта");
-                        ui.label("• To change the mass of the body, wind the mouse around it while holding right click   |   Чтобы изменить массу объекта, вращайте мышь вокруг него, удерживая правую кнопку мыши");
-                        ui.label("• Space to pause/continue   |   Пробел для паузы/продолжения");
-                        ui.label("• E to open a menu where you can enable the quadtree visualization   |   E для открытия меню, где можно включить визуализацию квадродерева");
+                        ui.label(t("help_text"));
                     });
                 });
         }

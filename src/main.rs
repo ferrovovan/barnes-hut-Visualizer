@@ -1,12 +1,13 @@
 use std::sync::atomic::Ordering;
 
 mod body;
+mod gui_state;
+mod language;
 mod quadtree;
 mod renderer;
+mod scenario_config;
 mod simulation;
 mod utils;
-mod scenario_config;
-mod gui_state;
 use renderer::Renderer;
 use simulation::Simulation;
 
@@ -26,7 +27,7 @@ fn main() {
             if let Some((new_bodies, _theta, _epsilon, dt)) = renderer::RESET_BODIES.lock().take() {
                 simulation.bodies = new_bodies;
                 simulation.dt = dt;
-                
+
                 // Вызываем вашу функцию отрисовки для кадра №0 (Она поднимет UPDATE_LOCK!)
                 render(&mut simulation);
             }
