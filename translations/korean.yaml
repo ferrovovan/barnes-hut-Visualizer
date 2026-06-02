@@ -1,0 +1,56 @@
+# korean.yaml
+
+# 기본 창 제목
+window_title: "Barnes-Hut 컨트롤러"
+
+# 체크박스 및 컨트롤
+show_bodies: "천체 표시"
+show_quadtree: "쿼드트리 표시"
+show_statistics: "통계 표시"
+set_language: "언어 선택"
+depth_range_label: "깊이 범위:"
+depth_range_to: "~"
+dt_label: "Δt (시간 단계)"
+apply_dt: "Δt 적용"
+
+# 버튼
+button_start: "▶ 시작"
+button_pause: "⏸ 일시 정지"
+button_presets: "📋 시나리오"
+button_load_preset: "📂 사용자 프리셋 불러오기"
+button_help: "⚙ 도움말"
+
+# 선택한 객체 정보
+selected_prefix: "선택: "
+mass_label: "질량: "
+radius_label: "반지름: "
+position_label: "위치: "
+velocity_label: "속도: "
+no_name: "선택한 객체에 이름이 없습니다"
+out_of_range: "선택한 인덱스가 범위를 벗어났습니다"
+click_info: "객체를 클릭(왼쪽 버튼)하여 정보를 보세요"
+
+# 시나리오 선택 창
+scenario_window_title: "시나리오 선택"
+
+# 통계 창
+stats_window_title: "통계"
+stats_bodies: "천체 수: "
+stats_fps: "FPS: "
+stats_updates: "시뮬레이션 업데이트 수: "
+stats_quadtree_nodes: "쿼드트리 노드 수: "
+stats_scale: "배율: "
+stats_total_mass: "총 질량: "
+stats_max_mass: "최대 질량: "
+stats_paused: "일시 정지: "
+
+# 도움말 창
+help_window_title: "도움말"
+# 도움말 텍스트
+help_text: |
+  • 스크롤로 확대/축소
+  • 마우스 가운데 버튼으로 화면 이동
+  • 마우스 오른쪽 버튼으로 천체 생성
+  • 천체의 질량을 변경하려면 오른쪽 버튼을 누른 상태에서 마우스를 그 주위로 회전시키세요
+  • 스페이스바로 일시 정지/재개
+  • E 키로 메뉴를 열어 쿼드트리 시각화를 활성화할 수 있습니다

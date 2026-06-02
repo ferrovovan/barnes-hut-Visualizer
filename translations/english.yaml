@@ -1,0 +1,56 @@
+# english.yaml
+
+# Main window title
+window_title: "Barnes-Hut Controller"
+
+# Checkboxes and controls
+show_bodies: "Show Bodies"
+show_quadtree: "Show Quadtree"
+show_statistics: "Show Statistics"
+set_language: "Select language"
+depth_range_label: "Depth Range:"
+depth_range_to: "to"
+dt_label: "Δt (time step)"
+apply_dt: "Apply Δt"
+
+# Buttons
+button_start: "▶ Start"
+button_pause: "⏸ Pause"
+button_presets: "📋 Scenarios"
+button_load_preset: "📂 Load own preset"
+button_help: "⚙ Help"
+
+# Selected object info
+selected_prefix: "Selected: "
+mass_label: "Mass: "
+radius_label: "Radius: "
+position_label: "Position: "
+velocity_label: "Velocity: "
+no_name: "Selected object has no name"
+out_of_range: "Selected index out of range"
+click_info: "Click on an object (LMB) to see info"
+
+# Scenario selection window
+scenario_window_title: "Select Scenario"
+
+# Statistics window
+stats_window_title: "Statistics"
+stats_bodies: "Bodies: "
+stats_fps: "FPS: "
+stats_updates: "Simulation updates: "
+stats_quadtree_nodes: "Quadtree nodes: "
+stats_scale: "Scale: "
+stats_total_mass: "Total mass: "
+stats_max_mass: "Max mass: "
+stats_paused: "Paused: "
+
+# Help window
+help_window_title: "Help"
+# Help text
+help_text: |
+  • Scroll to zoom
+  • Middle mouse button to grab view
+  • Right mouse button to spawn a body
+  • To change the mass of the body, wind the mouse around it while holding right click
+  • Space to pause/continue
+  • E to open a menu where you can enable the quadtree visualization

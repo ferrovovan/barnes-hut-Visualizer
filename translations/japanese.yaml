@@ -1,0 +1,56 @@
+# japanese.yaml
+
+# メインウィンドウのタイトル
+window_title: "Barnes-Hut コントローラー"
+
+# チェックボックスとコントロール
+show_bodies: "天体を表示"
+show_quadtree: "クアッドツリーを表示"
+show_statistics: "統計を表示"
+set_language: "言語を選択"
+depth_range_label: "深度範囲:"
+depth_range_to: "～"
+dt_label: "Δt (タイムステップ)"
+apply_dt: "Δtを適用"
+
+# ボタン
+button_start: "▶ 開始"
+button_pause: "⏸ 一時停止"
+button_presets: "📋 シナリオ"
+button_load_preset: "📂 独自のプリセットを読み込む"
+button_help: "⚙ ヘルプ"
+
+# 選択オブジェクトの情報
+selected_prefix: "選択: "
+mass_label: "質量: "
+radius_label: "半径: "
+position_label: "位置: "
+velocity_label: "速度: "
+no_name: "選択したオブジェクトには名前がありません"
+out_of_range: "選択したインデックスが範囲外です"
+click_info: "オブジェクトをクリック（左ボタン）して情報を表示"
+
+# シナリオ選択ウィンドウ
+scenario_window_title: "シナリオを選択"
+
+# 統計ウィンドウ
+stats_window_title: "統計"
+stats_bodies: "天体数: "
+stats_fps: "FPS: "
+stats_updates: "シミュレーション更新回数: "
+stats_quadtree_nodes: "クアッドツリーノード数: "
+stats_scale: "スケール: "
+stats_total_mass: "総質量: "
+stats_max_mass: "最大質量: "
+stats_paused: "一時停止: "
+
+# ヘルプウィンドウ
+help_window_title: "ヘルプ"
+# ヘルプテキスト
+help_text: |
+  • スクロールでズーム
+  • マウス中ボタンでビューをドラッグ
+  • マウス右ボタンで天体を生成
+  • 天体の質量を変更するには、右ボタンを押しながらマウスをその周りで回転させます
+  • スペースキーで一時停止/再開
+  • Eキーでメニューを開き、クアッドツリーの可視化を有効にできます

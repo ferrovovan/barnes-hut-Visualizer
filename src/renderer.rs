@@ -60,31 +60,37 @@ const PRESETS: &[(&str, &str)] = &[
     ("🌌 Оригинальный диск (100k тел)", ""),
     (
         "🪐 Солнечная система (полная)",
-        "presets/11_solar_system_full.json",
+        "../presets/11_solar_system_full.json",
     ),
-    ("⭐ Двойная звезда", "presets/binary_star.json"),
-    ("💥 Столкновение галактик", "presets/galaxy_collision.json"),
+    ("⭐ Двойная звезда", "../presets/binary_star.json"),
+    (
+        "💥 Столкновение галактик",
+        "../presets/galaxy_collision.json",
+    ),
     (
         "🌀 Аккреционный диск чёрной дыры",
-        "presets/black_hole_accretion.json",
+        "../presets/black_hole_accretion.json",
     ),
     (
         "💍 Кольца Сатурна (улучшенные)",
-        "presets/saturn_rings.json",
+        "../presets/saturn_rings.json",
     ),
-    ("🔵 Глобулярное скопление", "presets/globular_cluster.json"),
+    (
+        "🔵 Глобулярное скопление",
+        "../presets/globular_cluster.json",
+    ),
     (
         "☄ Солнечная система + комета",
-        "presets/solar_system_comet.json",
+        "../presets/solar_system_comet.json",
     ),
     (
         "☄ Бродячая звезда (Разрушение системы)",
-        "presets/rogue_star_encounter.json",
+        "../presets/rogue_star_encounter.json",
     ),
-    ("📀 Галактика с перемычкой", "presets/barred_galaxy.json"),
+    ("📀 Галактика с перемычкой", "../presets/barred_galaxy.json"),
     (
         "🌌 Расширяющаяся Вселенная",
-        "presets/expanding_universe.json",
+        "../presets/expanding_universe.json",
     ),
 ];
 
@@ -98,6 +104,7 @@ pub struct Renderer {
     show_quadtree: bool,
     show_stats: bool,
     show_help: bool,
+    show_change_language: bool,
 
     depth_range: (usize, usize),
     spawn_body: Option<Body>,
@@ -130,6 +137,7 @@ impl quarkstrom::Renderer for Renderer {
             show_quadtree: false,
             show_stats: false,
             show_help: false,
+            show_change_language: true,
 
             depth_range: (0, 0),
             spawn_body: None,
@@ -356,6 +364,7 @@ impl quarkstrom::Renderer for Renderer {
                 ui.checkbox(&mut self.show_bodies, t("show_bodies"));
                 ui.checkbox(&mut self.show_quadtree, t("show_quadtree"));
                 ui.checkbox(&mut self.show_stats, t("show_statistics"));
+                ui.checkbox(&mut self.show_change_language, t("set_language"));
                 if self.show_quadtree {
                     let range = &mut self.depth_range;
                     ui.horizontal(|ui| {
@@ -505,6 +514,44 @@ impl quarkstrom::Renderer for Renderer {
                 });
         }
 
+        if self.show_change_language {
+            egui::Window::new("Select language")
+                .anchor(egui::Align2::CENTER_CENTER, egui::Vec2::ZERO)
+                .collapsible(false)
+                .resizable(false)
+                .open(&mut self.show_change_language)
+                .show(ctx, |ui| {
+                    ui.horizontal_centered(|ui| {
+                        if ui.button("🇪🇸 Español").clicked() {
+                            let _ = crate::language::set_language("spanish");
+                        }
+                        if ui.button("🇬🇧 English").clicked() {
+                            let _ = crate::language::set_language("english");
+                        }
+                        if ui.button("🇫🇷 Français").clicked() {
+                            let _ = crate::language::set_language("french");
+                        }
+                        if ui.button("🇮🇹 Italiano").clicked() {
+                            let _ = crate::language::set_language("italian");
+                        }
+                        if ui.button("🇩🇪 Deutsch").clicked() {
+                            let _ = crate::language::set_language("german");
+                        }
+                        if ui.button("🇷🇺 Русский").clicked() {
+                            let _ = crate::language::set_language("russian");
+                        }
+                        if ui.button("🇨🇳 中文").clicked() {
+                            let _ = crate::language::set_language("chinese");
+                        }
+                        if ui.button("🇯🇵 日本語").clicked() {
+                            let _ = crate::language::set_language("japanese");
+                        }
+                        if ui.button("🇰🇷 한국어").clicked() {
+                            let _ = crate::language::set_language("korean");
+                        }
+                    });
+                });
+        }
         // Окошко с подсказками по управлению
         if self.show_help {
             let help_width = ctx.screen_rect().width() * 2.0 / 3.0;

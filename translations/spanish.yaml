@@ -1,0 +1,56 @@
+# spanish.yaml
+
+# Título de la ventana principal
+window_title: "Controlador Barnes-Hut"
+
+# Casillas de verificación y controles
+show_bodies: "Mostrar cuerpos"
+show_quadtree: "Mostrar quadtree"
+show_statistics: "Mostrar estadísticas"
+set_language: "Seleccionar idioma"
+depth_range_label: "Rango de profundidad:"
+depth_range_to: "a"
+dt_label: "Δt (paso de tiempo)"
+apply_dt: "Aplicar Δt"
+
+# Botones
+button_start: "▶ Iniciar"
+button_pause: "⏸ Pausa"
+button_presets: "📋 Escenarios"
+button_load_preset: "📂 Cargar preset propio"
+button_help: "⚙ Ayuda"
+
+# Información del objeto seleccionado
+selected_prefix: "Seleccionado: "
+mass_label: "Masa: "
+radius_label: "Radio: "
+position_label: "Posición: "
+velocity_label: "Velocidad: "
+no_name: "El objeto seleccionado no tiene nombre"
+out_of_range: "Índice seleccionado fuera de rango"
+click_info: "Haz clic en un objeto (botón izquierdo) para ver información"
+
+# Ventana de selección de escenarios
+scenario_window_title: "Seleccionar escenario"
+
+# Ventana de estadísticas
+stats_window_title: "Estadísticas"
+stats_bodies: "Cuerpos: "
+stats_fps: "FPS: "
+stats_updates: "Actualizaciones de simulación: "
+stats_quadtree_nodes: "Nodos del quadtree: "
+stats_scale: "Escala: "
+stats_total_mass: "Masa total: "
+stats_max_mass: "Masa máxima: "
+stats_paused: "Pausado: "
+
+# Ventana de ayuda
+help_window_title: "Ayuda"
+# Texto de ayuda
+help_text: |
+  • Rueda para acercar/alejar
+  • Botón central del ratón para arrastrar la vista
+  • Botón derecho para crear un cuerpo
+  • Para cambiar la masa del cuerpo, gira el ratón alrededor de él manteniendo pulsado el botón derecho
+  • Espacio para pausar/reanudar
+  • E para abrir un menú donde puedes activar la visualización del quadtree

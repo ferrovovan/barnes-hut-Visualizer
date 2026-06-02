@@ -1,0 +1,56 @@
+# german.yaml
+
+# Titel des Hauptfensters
+window_title: "Barnes-Hut Steuerung"
+
+# Kontrollkästchen und Bedienelemente
+show_bodies: "Körper anzeigen"
+show_quadtree: "Quadtree anzeigen"
+show_statistics: "Statistiken anzeigen"
+set_language: "Sprache wählen"
+depth_range_label: "Tiefenbereich:"
+depth_range_to: "bis"
+dt_label: "Δt (Zeitschritt)"
+apply_dt: "Δt anwenden"
+
+# Schaltflächen
+button_start: "▶ Start"
+button_pause: "⏸ Pause"
+button_presets: "📋 Szenarien"
+button_load_preset: "📂 Eigene Voreinstellung laden"
+button_help: "⚙ Hilfe"
+
+# Informationen zum ausgewählten Objekt
+selected_prefix: "Ausgewählt: "
+mass_label: "Masse: "
+radius_label: "Radius: "
+position_label: "Position: "
+velocity_label: "Geschwindigkeit: "
+no_name: "Ausgewähltes Objekt hat keinen Namen"
+out_of_range: "Index außerhalb des gültigen Bereichs"
+click_info: "Klicken Sie auf ein Objekt (linke Maustaste), um Informationen anzuzeigen"
+
+# Fenster zur Szenarienauswahl
+scenario_window_title: "Szenario auswählen"
+
+# Statistikfenster
+stats_window_title: "Statistiken"
+stats_bodies: "Körper: "
+stats_fps: "FPS: "
+stats_updates: "Simulationsschritte: "
+stats_quadtree_nodes: "Quadtree-Knoten: "
+stats_scale: "Maßstab: "
+stats_total_mass: "Gesamtmasse: "
+stats_max_mass: "Max. Masse: "
+stats_paused: "Pausiert: "
+
+# Hilfefenster
+help_window_title: "Hilfe"
+# Hilfetext
+help_text: |
+  • Scrollen zum Zoomen
+  • Mittlere Maustaste zum Verschieben der Ansicht
+  • Rechte Maustaste zum Erzeugen eines Körpers
+  • Um die Masse des Körpers zu ändern, bewegen Sie die Maus kreisförmig um ihn, während Sie die rechte Maustaste gedrückt halten
+  • Leertaste zum Pausieren/Fortsetzen
+  • E öffnet ein Menü, in dem Sie die Quadtree-Visualisierung aktivieren können

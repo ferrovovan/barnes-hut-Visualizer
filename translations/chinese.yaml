@@ -1,0 +1,56 @@
+# chinese.yaml
+
+# 主窗口标题
+window_title: "Barnes-Hut 控制器"
+
+# 复选框和控件
+show_bodies: "显示天体"
+show_quadtree: "显示四叉树"
+show_statistics: "显示统计"
+set_language: "选择语言"
+depth_range_label: "深度范围："
+depth_range_to: "至"
+dt_label: "Δt（时间步长）"
+apply_dt: "应用 Δt"
+
+# 按钮
+button_start: "▶ 开始"
+button_pause: "⏸ 暂停"
+button_presets: "📋 场景"
+button_load_preset: "📂 加载自定义预设"
+button_help: "⚙ 帮助"
+
+# 选中对象信息
+selected_prefix: "已选择："
+mass_label: "质量："
+radius_label: "半径："
+position_label: "位置："
+velocity_label: "速度："
+no_name: "选中的对象没有名称"
+out_of_range: "选中的索引超出范围"
+click_info: "点击天体（鼠标左键）查看信息"
+
+# 场景选择窗口
+scenario_window_title: "选择场景"
+
+# 统计窗口
+stats_window_title: "统计"
+stats_bodies: "天体数："
+stats_fps: "帧率："
+stats_updates: "模拟更新次数："
+stats_quadtree_nodes: "四叉树节点数："
+stats_scale: "缩放："
+stats_total_mass: "总质量："
+stats_max_mass: "最大质量："
+stats_paused: "暂停状态："
+
+# 帮助窗口
+help_window_title: "帮助"
+# 帮助文本
+help_text: |
+  • 滚轮缩放
+  • 鼠标中键拖拽视图
+  • 鼠标右键创建天体
+  • 按住右键并绕天体旋转鼠标可改变其质量
+  • 空格键暂停/继续
+  • E 键打开菜单，可启用四叉树可视化

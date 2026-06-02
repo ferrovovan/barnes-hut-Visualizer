@@ -31,10 +31,9 @@ impl Translations {
 
 /// Глобальный объект текущих переводов
 pub static TRANSLATIONS: Lazy<Mutex<Translations>> = Lazy::new(|| {
-    // По умолчанию встроен русский перевод (можно переключить позже)
-    let default_ru = include_str!("../translations/russian.yaml");
+    let default_en = include_str!("../translations/english.yaml");
     let translations =
-        Translations::from_yaml(default_ru).expect("Ошибка парсинга встроенного russian.yaml");
+        Translations::from_yaml(default_en).expect("Ошибка парсинга встроенного english.yaml");
     Mutex::new(translations)
 });
 
@@ -45,7 +44,7 @@ pub fn t(key: &str) -> String {
 
 /// Смена языка (перезагружает переводы из файла)
 pub fn set_language(lang_code: &str) -> Result<(), anyhow::Error> {
-    let path = format!("translations/{}.yaml", lang_code);
+    let path = format!("../translations/{}.yaml", lang_code);
     let new_translations = Translations::from_file(&path)?;
     *TRANSLATIONS.lock() = new_translations;
     Ok(())

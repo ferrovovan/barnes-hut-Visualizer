@@ -1,0 +1,56 @@
+# french.yaml
+
+# Titre de la fenêtre principale
+window_title: "Contrôleur Barnes-Hut"
+
+# Cases à cocher et contrôles
+show_bodies: "Afficher les corps"
+show_quadtree: "Afficher le quadtree"
+show_statistics: "Afficher les statistiques"
+set_language: "Choisir la langue"
+depth_range_label: "Plage de profondeur :"
+depth_range_to: "à"
+dt_label: "Δt (pas de temps)"
+apply_dt: "Appliquer Δt"
+
+# Boutons
+button_start: "▶ Démarrer"
+button_pause: "⏸ Pause"
+button_presets: "📋 Scénarios"
+button_load_preset: "📂 Charger un preset personnel"
+button_help: "⚙ Aide"
+
+# Informations sur l'objet sélectionné
+selected_prefix: "Sélectionné : "
+mass_label: "Masse : "
+radius_label: "Rayon : "
+position_label: "Position : "
+velocity_label: "Vitesse : "
+no_name: "L'objet sélectionné n'a pas de nom"
+out_of_range: "Index sélectionné hors limites"
+click_info: "Cliquez sur un objet (bouton gauche) pour voir ses informations"
+
+# Fenêtre de sélection des scénarios
+scenario_window_title: "Choisir un scénario"
+
+# Fenêtre des statistiques
+stats_window_title: "Statistiques"
+stats_bodies: "Corps : "
+stats_fps: "IPS : "
+stats_updates: "Mises à jour de la simulation : "
+stats_quadtree_nodes: "Nœuds du quadtree : "
+stats_scale: "Échelle : "
+stats_total_mass: "Masse totale : "
+stats_max_mass: "Masse max : "
+stats_paused: "En pause : "
+
+# Fenêtre d'aide
+help_window_title: "Aide"
+# Texte d'aide
+help_text: |
+  • Molette pour zoomer
+  • Bouton du milieu pour déplacer la vue
+  • Bouton droit pour créer un corps
+  • Pour changer la masse du corps, tournez la souris autour de lui tout en maintenant le bouton droit
+  • Espace pour mettre en pause / reprendre
+  • E pour ouvrir un menu permettant d'activer la visualisation du quadtree
