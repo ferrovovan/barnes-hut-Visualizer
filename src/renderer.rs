@@ -137,7 +137,7 @@ impl quarkstrom::Renderer for Renderer {
             settings_window_open: true,
             show_bodies: true,
             show_quadtree: false,
-            show_stats: true,
+            show_stats: false,
 
             depth_range: (0, 0),
             spawn_body: None,
@@ -376,6 +376,7 @@ impl quarkstrom::Renderer for Renderer {
             .show(ctx, |ui| {
                 ui.checkbox(&mut self.show_bodies, "Show Bodies");
                 ui.checkbox(&mut self.show_quadtree, "Show Quadtree");
+                ui.checkbox(&mut self.show_stats, "Show Statistics");
                 if self.show_quadtree {
                     let range = &mut self.depth_range;
                     ui.horizontal(|ui| {
@@ -469,27 +470,24 @@ impl quarkstrom::Renderer for Renderer {
         }
 
         if self.show_stats {
+            let screen_right_x = ctx.screen_rect().right();
             egui::Window::new("Statistics")
                 .resizable(false)
                 .collapsible(false)
-                .default_pos([10.0, 10.0])
+                .fixed_pos(egui::pos2(screen_right_x - 300.0, 10.0))
                 .show(ctx, |ui| {
-                    let body_count = self.bodies.len();
-
+                    ui.set_width(300.0);
                     let total_mass: f32 = self.bodies.iter().map(|b| b.mass).sum();
-
                     let max_mass = self.bodies.iter().map(|b| b.mass).fold(0.0_f32, f32::max);
 
-                    ui.label(format!("Bodies: {}", body_count));
+                    ui.label(format!("Bodies: {}", self.bodies.len()));
                     ui.label(format!("FPS: {:.1}", self.fps));
                     ui.label(format!("Simulation updates: {}", self.simulation_updates));
                     ui.label(format!("Quadtree nodes: {}", self.quadtree.len()));
                     ui.label(format!("Scale: {:.2}", self.scale));
                     ui.label(format!("Total mass: {:.2}", total_mass));
                     ui.label(format!("Max mass: {:.2}", max_mass));
-
                     ui.separator();
-
                     ui.label(format!("Paused: {}", PAUSED.load(Ordering::Relaxed)));
                 });
         }
