@@ -1,0 +1,41 @@
+{
+  "name": "☄ Бродячая звезда (Разрушение системы)",
+  "kind": "Custom",
+  "star_count": 0,
+  "satellite_count": 0,
+  "star_mass": 0.0,
+  "satellite_mass_range": [0.0, 0.0],
+  "disk_radius": 0.0,
+  "seed": 1337,
+  "theta": 0.7,
+  "epsilon": 0.3,
+  "dt": 0.04,
+  "bodies": [
+    {
+      "name": "Центральная Звезда",
+      "position": {"x": 0.0, "y": 0.0},
+      "velocity": {"x": 0.0, "y": -3.0},
+      "mass": 800000.0,
+      "radius": 22.0
+    },
+    {
+      "name": "Бродячая Звезда",
+      "position": {"x": -800.0, "y": 350.0},
+      "velocity": {"x": 120.0, "y": -50.0},
+      "mass": 1400000.0,
+      "radius": 32.0
+    }
+  ],
+  "generators": [
+    {
+      "gen_type": "Ring",
+      "center": {"x": 0.0, "y": 0.0},
+      "central_mass": 800000.0,
+      "count": 2500,
+      "distance_range": [50.0, 280.0],
+      "density_range": [0.1, 0.6],
+      "radius_range": [0.3, 0.9],
+      "base_velocity": {"x": 0.0, "y": -3.0}
+    }
+  ]
+}
