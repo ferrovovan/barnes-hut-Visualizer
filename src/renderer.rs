@@ -91,10 +91,9 @@ const PRESETS: &[(&str, &str)] = &[
         "presets/solar_system_comet.json",
     ),
     (
-        "🌙 Двойная планета (Земля-Луна)",
-        "presets/double_planet.json",
+        "☄ Бродячая звезда (Разрушение системы)",
+        "presets/rogue_star_encounter.json",
     ),
-    ("🔺 Задача трёх тел", "presets/three_body.json"),
     ("📀 Галактика с перемычкой", "presets/barred_galaxy.json"),
     (
         "🌌 Расширяющаяся Вселенная",
