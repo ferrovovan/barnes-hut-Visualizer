@@ -283,7 +283,7 @@ impl quarkstrom::Renderer for Renderer {
                     let body = &self.bodies[i];
                     let t = normalize_mass(body.mass, min_mass, max_mass);
                     let color = blackbody_color(t);
-                    let radius = 1.0 + body.mass.cbrt() * 0.6;
+                    let radius = body.radius;
 
                     ctx.draw_circle(body.pos, radius, color);
                 }
