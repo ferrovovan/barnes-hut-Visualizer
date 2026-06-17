@@ -42,7 +42,7 @@ impl Simulation {
         self.collide();
         self.attract();
         self.frame += 1;
-}
+    }
 
     pub fn attract(&mut self) {
         let quad = Quad::new_containing(&self.bodies);

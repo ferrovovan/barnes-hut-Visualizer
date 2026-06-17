@@ -1,4 +1,4 @@
-use crate::language::t;
+use crate::language::t; // translation utility
 use std::{
     f32::consts::{PI, TAU},
     sync::atomic::{AtomicBool, Ordering},
@@ -6,26 +6,26 @@ use std::{
 };
 
 use crate::{body::Body, gui_state::GuiState, quadtree::Node, scenario_config::SimulationConfig};
-
 use quarkstrom::{egui, winit::event::VirtualKeyCode, winit_input_helper::WinitInputHelper};
 
+// ---- Color block -----
 use palette::{rgb::Rgba, Hsluv, IntoColor};
-fn lerp(a: f32, b: f32, t: f32) -> f32 {
-    a + (b - a) * t
-}
+// fn lerp(a: f32, b: f32, t: f32) -> f32 {
+//     a + (b - a) * t
+// }
 
-fn lerp_color(a: [u8; 4], b: [u8; 4], t: f32) -> [u8; 4] {
-    [
-        lerp(a[0] as f32, b[0] as f32, t) as u8,
-        lerp(a[1] as f32, b[1] as f32, t) as u8,
-        lerp(a[2] as f32, b[2] as f32, t) as u8,
-        255,
-    ]
-}
+// fn lerp_color(a: [u8; 4], b: [u8; 4], t: f32) -> [u8; 4] {
+//     [
+//         lerp(a[0] as f32, b[0] as f32, t) as u8,
+//         lerp(a[1] as f32, b[1] as f32, t) as u8,
+//         lerp(a[2] as f32, b[2] as f32, t) as u8,
+//         255,
+//     ]
+// }
 
-fn relative_mass(mass: f32) -> f32 {
-    mass.max(1.0).log10() - 8.5
-}
+// fn relative_mass(mass: f32) -> f32 {
+//     mass.max(1.0).log10() - 8.5
+// }
 
 fn body_color(mass: f32) -> [u8; 4] {
     match mass {
@@ -38,6 +38,8 @@ fn body_color(mass: f32) -> [u8; 4] {
         _ => [255, 120, 0, 255],
     }
 }
+
+//
 
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
@@ -265,6 +267,7 @@ impl quarkstrom::Renderer for Renderer {
         ctx.set_view_pos(self.pos);
         ctx.set_view_scale(self.scale);
 
+        // ────── Отображение тел ──────
         if !self.bodies.is_empty() {
             if self.show_bodies {
                 for i in 0..self.bodies.len() {
@@ -276,7 +279,7 @@ impl quarkstrom::Renderer for Renderer {
                 }
             }
 
-            // Создание тела
+            // Создаваемые тела
             if let Some(body) = &self.confirmed_bodies {
                 let color = body_color(body.mass);
                 ctx.draw_circle(body.pos, body.radius, color);
@@ -290,7 +293,7 @@ impl quarkstrom::Renderer for Renderer {
             }
         }
 
-        // ── Отображение квадродерева ──────────────────────────────
+        // ────── Отображение квадродерева ──────
         if self.show_quadtree && !self.quadtree.is_empty() {
             let mut depth_range = self.depth_range;
 
@@ -357,6 +360,7 @@ impl quarkstrom::Renderer for Renderer {
     fn gui(&mut self, ctx: &quarkstrom::egui::Context) {
         ctx.set_pixels_per_point(1.0);
 
+        // ──────  Launcher window  ──────
         let mut settings_open = self.settings_window_open;
         egui::Window::new(t("window_title"))
             .open(&mut settings_open)
@@ -438,7 +442,7 @@ impl quarkstrom::Renderer for Renderer {
             });
         self.settings_window_open = settings_open;
 
-        // Окно выбора сценариев (без захвата open)
+        // ──────  Окно выбора сценариев (без захвата open)  ──────
         if self.preset_window_open {
             let mut open = true;
             egui::Window::new(t("scenario_window_title"))
@@ -458,7 +462,7 @@ impl quarkstrom::Renderer for Renderer {
             }
         }
 
-        // Отложенная загрузка
+        // ──────  Отложенная загрузка сценария  ──────
         if let Some(preset_path) = self.pending_preset.take() {
             if preset_path.is_empty() {
                 self.load_uniform_disc();
@@ -467,7 +471,7 @@ impl quarkstrom::Renderer for Renderer {
             }
         }
 
-        // окошко для высвечивания подсказки
+        // ──────  Кнопка для высвечивания подсказок  ──────
         egui::Area::new("help_button")
             .anchor(egui::Align2::RIGHT_TOP, egui::vec2(-16.0, 16.0)) // отступ от краёв
             .interactable(true)
@@ -479,6 +483,7 @@ impl quarkstrom::Renderer for Renderer {
                 }
             });
 
+        // ──────  Окошко статистики  ──────
         if self.show_stats {
             let screen_right_x = ctx.screen_rect().right();
             egui::Window::new(t("stats_window_title"))
@@ -514,6 +519,7 @@ impl quarkstrom::Renderer for Renderer {
                 });
         }
 
+        // ──────  Окошко выбора языка  ──────
         if self.show_change_language {
             egui::Window::new("Select language")
                 .anchor(egui::Align2::CENTER_CENTER, egui::Vec2::ZERO)
@@ -552,7 +558,8 @@ impl quarkstrom::Renderer for Renderer {
                     });
                 });
         }
-        // Окошко с подсказками по управлению
+
+        // ──────  Окошко с подсказками по управлению  ──────
         if self.show_help {
             let help_width = ctx.screen_rect().width() * 2.0 / 3.0;
             let help_height = ctx.screen_rect().height() * 1.5 / 3.0;
