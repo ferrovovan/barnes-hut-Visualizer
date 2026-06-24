@@ -38,6 +38,7 @@ fn main() {
                 // std::thread::yield_now();
             } else {
                 if !simulation.bodies.is_empty() {
+                    simulation.is_cleaning = renderer::CLEANING.load(Ordering::Relaxed); // not optimized
                     simulation.step();
                     render(&mut simulation);
                 }

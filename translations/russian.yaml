@@ -6,10 +6,13 @@ window_title: "Barnes-Hut Контроллер"
 # Чекбоксы и элементы управления
 show_bodies: "Показать тела"
 show_quadtree: "Показать квадродерево"
+quadtree_depth_range_label: "Диапазон глубины:"
+quadtree_depth_range_to: "до"
+show_cleaning: "УБОРКА (beta)"
+cleaning_value_label: "Параметр очистки ε"
 show_statistics: "Показать статистику"
 set_language: "Выбрать язык"
-depth_range_label: "Диапазон глубины:"
-depth_range_to: "до"
+
 dt_label: "Δt (шаг времени)"
 apply_dt: "Применить Δt"
 

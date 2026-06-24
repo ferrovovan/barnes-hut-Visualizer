@@ -1,6 +1,6 @@
 use crate::{
     body::Body,
-    quadtree::{Quad, Quadtree},
+    quadtree::{Node, Quad, Quadtree},
     renderer::DT,
     utils,
 };
@@ -8,11 +8,27 @@ use crate::{
 use broccoli::aabb::Rect;
 use ultraviolet::Vec2;
 
+//// Epsilon block
+use once_cell::sync::Lazy;
+use std::sync::atomic::{AtomicU32, Ordering};
+pub static EPSILON_BITS: Lazy<AtomicU32> = Lazy::new(|| AtomicU32::new(0.005_f32.to_bits()));
+
+pub fn get_epsilon() -> f32 {
+    f32::from_bits(EPSILON_BITS.load(Ordering::Relaxed))
+}
+
+pub fn set_epsilon(val: f32) {
+    EPSILON_BITS.store(val.to_bits(), Ordering::Relaxed);
+}
+
+//// Simulation block
 pub struct Simulation {
     pub dt: f32,
     pub frame: usize,
     pub bodies: Vec<Body>,
     pub quadtree: Quadtree,
+
+    pub is_cleaning: bool,
 }
 
 impl Simulation {
@@ -30,6 +46,7 @@ impl Simulation {
             frame: 0,
             bodies,
             quadtree,
+            is_cleaning: false,
         }
     }
 
@@ -38,10 +55,62 @@ impl Simulation {
         if let Some(dt) = DT.try_lock() {
             self.dt = *dt;
         }
+        if self.is_cleaning {
+            self.cleaning();
+        }
         self.iterate();
         self.collide();
         self.attract();
         self.frame += 1;
+    }
+
+    pub fn cleaning(&mut self) {
+        let nodes = &self.quadtree.nodes;
+        let root = Quadtree::ROOT;
+        if root >= nodes.len() || nodes[root].children == 0 {
+            return;
+        }
+
+        // Рекурсивный сбор крайних узлов в главном квадрате
+        let collector = ExtremeCollector::new(nodes, root, get_epsilon());
+        let mut extremes = collector.into_extremes();
+        println!("-->  Узлов для очистки: {}", extremes.len());
+        if extremes.is_empty() {
+            return;
+        } else {
+            extremes.sort_unstable();
+            extremes.dedup();
+        }
+
+        // Сохраняем Quad для удаления тел
+        let to_remove: Vec<(usize, Quad)> = extremes
+            .iter()
+            .map(|&i| (i, self.quadtree.nodes[i].quad))
+            .collect();
+
+        // Удаляем тела, попавшие в крайние «мусорные» квадранты
+        self.bodies.retain(|body| {
+            !to_remove.iter().any(|(_, quad)| {
+                let half = quad.size / 2.0;
+                let min = quad.center - Vec2::new(half, half);
+                let max = quad.center + Vec2::new(half, half);
+                body.pos.x >= min.x
+                    && body.pos.x <= max.x
+                    && body.pos.y >= min.y
+                    && body.pos.y <= max.y
+            })
+        });
+
+        // println!("-->  Узлов до очистки: {}", self.bodies.len());
+        // Удаляем помеченные узлы из дерева (в обратном порядке индексов)
+        for idx in extremes.into_iter().rev() {
+            self.quadtree.nodes.remove(idx);
+            // Поддерживаем синхронность parents
+            if idx < self.quadtree.parents.len() {
+                self.quadtree.parents.remove(idx);
+            }
+        }
+        // println!("--> Узлов после очистки: {}", self.bodies.len());
     }
 
     pub fn attract(&mut self) {
@@ -148,5 +217,119 @@ impl Simulation {
         self.bodies[j].vel = v2;
         self.bodies[i].pos += v1 * t;
         self.bodies[j].pos += v2 * t;
+    }
+}
+
+// Класс, выполняющий сбор крайних узлов при создании
+struct ExtremeCollector<'a> {
+    nodes: &'a [Node],
+    eps: f32,
+    extremes: Vec<usize>,
+}
+
+impl<'a> ExtremeCollector<'a> {
+    fn new(nodes: &'a [Node], root: usize, eps: f32) -> Self {
+        let mut collector = Self {
+            nodes,
+            eps,
+            extremes: Vec::new(),
+        };
+        if root < nodes.len() && nodes[root].children != 0 {
+            collector.collect(root);
+        }
+        collector
+    }
+
+    fn calc_cond(&mut self, node: &Node) -> bool {
+        let node_s: f32 = node.quad.size; // "s" stands for side or square
+
+        //// Lenght variant. Because space in pixels is huge
+        let koeff: f32 = node.mass / (node_s);
+        //// Square variant. It's mean.
+        // let koeff: f32 = node.mass / (node_s * node_s);
+
+        return (koeff < self.eps);
+        // return (koeff * koeff < eps);
+    }
+
+    /// Запуск сбора для каждого из 4-х непосредственных потомков корня
+    fn collect(&mut self, root: usize) {
+        let root_node = &self.nodes[root];
+        let root_center = root_node.quad.center;
+        let mut child_idx = root_node.children;
+        while child_idx != 0 {
+            let child = &self.nodes[child_idx];
+            let is_right = child.quad.center.x > root_center.x;
+            let is_top = child.quad.center.y > root_center.y;
+
+            self.collect_lvl1(child_idx, (is_right, is_top));
+            child_idx = child.next;
+        }
+    }
+    /// Рекурсивный сбор всех крайних узлов в заданном направлении
+    fn collect_lvl1(
+        &mut self,
+        node_idx: usize,
+        direction: (bool, bool), // (is_right, is_top)
+    ) {
+        let node = &self.nodes[node_idx];
+        if self.calc_cond(node) {
+            self.extremes.push(node_idx);
+        }
+
+        let mut child_idx = node.children;
+
+        while child_idx != 0 {
+            let child = &self.nodes[child_idx];
+
+            let right_cond = child.quad.center.x > node.quad.center.x;
+            let top_cond = child.quad.center.y > node.quad.center.y;
+
+            if right_cond == direction.0 && top_cond == direction.1 {
+                self.collect_lvl1(child_idx, direction);
+                break;
+            } else if right_cond == direction.0 || top_cond == direction.1 {
+                let side = if right_cond == direction.0 {
+                    (direction.0, true) // (положительное_направление, ось_X)
+                } else {
+                    (direction.1, false) // ось_Y
+                };
+                self.collect_lvl2(child_idx, side);
+                break;
+            }
+            child_idx = child.next;
+        }
+    }
+
+    fn collect_lvl2(
+        &mut self,
+        node_idx: usize,
+        side: (bool, bool), // (positive, is_x_axis)
+    ) {
+        let node = &self.nodes[node_idx];
+        if self.calc_cond(node) {
+            // println!("Коэфф: {}, индекс {}", koeff, node_idx);
+            self.extremes.push(node_idx);
+        }
+        let (positive, is_x) = side;
+        let mut child_idx = node.children;
+
+        while child_idx != 0 {
+            let child = &self.nodes[child_idx];
+
+            let cond = if is_x {
+                child.quad.center.x > node.quad.center.x // right_cond
+            } else {
+                child.quad.center.y > node.quad.center.y // top_cond
+            };
+            if cond == positive {
+                self.collect_lvl2(child_idx, side);
+            }
+            child_idx = child.next;
+        }
+    }
+
+    fn into_extremes(self) -> Vec<usize> {
+        self.extremes
     }
 }

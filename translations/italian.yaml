@@ -6,10 +6,13 @@ window_title: "Controller Barnes-Hut"
 # Caselle di controllo e controlli
 show_bodies: "Mostra corpi"
 show_quadtree: "Mostra quadtree"
+quadtree_depth_range_label: "Intervallo di profondità:"
+quadtree_depth_range_to: "a"
+show_cleaning: "PULIZIA (beta)"
+cleaning_value_label: "Parametro di pulizia ε"
 show_statistics: "Mostra statistiche"
 set_language: "Seleziona lingua"
-depth_range_label: "Intervallo di profondità:"
-depth_range_to: "a"
+
 dt_label: "Δt (passo temporale)"
 apply_dt: "Applica Δt"
 

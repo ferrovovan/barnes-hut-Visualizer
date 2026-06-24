@@ -6,10 +6,13 @@ window_title: "Barnes-Hut Steuerung"
 # Kontrollkästchen und Bedienelemente
 show_bodies: "Körper anzeigen"
 show_quadtree: "Quadtree anzeigen"
+quadtree_depth_range_label: "Tiefenbereich:"
+quadtree_depth_range_to: "bis"
+show_cleaning: "REINIGUNG (Beta)"
+cleaning_value_label: "Reinigungsparameter  ε"
 show_statistics: "Statistiken anzeigen"
 set_language: "Sprache wählen"
-depth_range_label: "Tiefenbereich:"
-depth_range_to: "bis"
+
 dt_label: "Δt (Zeitschritt)"
 apply_dt: "Δt anwenden"
 

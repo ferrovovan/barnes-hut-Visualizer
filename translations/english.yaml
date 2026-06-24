@@ -6,10 +6,13 @@ window_title: "Barnes-Hut Controller"
 # Checkboxes and controls
 show_bodies: "Show Bodies"
 show_quadtree: "Show Quadtree"
+quadtree_depth_range_label: "Depth Range:"
+quadtree_depth_range_to: "to"
+show_cleaning: "CLEANING (beta)"
+cleaning_value_label: "Cleaning ε value"
 show_statistics: "Show Statistics"
 set_language: "Select language"
-depth_range_label: "Depth Range:"
-depth_range_to: "to"
+
 dt_label: "Δt (time step)"
 apply_dt: "Apply Δt"
 

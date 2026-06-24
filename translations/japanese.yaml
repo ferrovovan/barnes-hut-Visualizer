@@ -6,10 +6,13 @@ window_title: "Barnes-Hut コントローラー"
 # チェックボックスとコントロール
 show_bodies: "天体を表示"
 show_quadtree: "クアッドツリーを表示"
+quadtree_depth_range_label: "深度範囲:"
+quadtree_depth_range_to: "～"
+show_cleaning: "クリーン (ベータ版)"
+cleaning_value_label: "洗浄パラメータε"
 show_statistics: "統計を表示"
 set_language: "言語を選択"
-depth_range_label: "深度範囲:"
-depth_range_to: "～"
+
 dt_label: "Δt (タイムステップ)"
 apply_dt: "Δtを適用"
 

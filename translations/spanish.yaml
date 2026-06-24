@@ -6,10 +6,13 @@ window_title: "Controlador Barnes-Hut"
 # Casillas de verificación y controles
 show_bodies: "Mostrar cuerpos"
 show_quadtree: "Mostrar quadtree"
+quadtree_depth_range_label: "Rango de profundidad:"
+quadtree_depth_range_to: "a"
+show_cleaning: "LIMPIEZA (beta)"
+cleaning_value_label: "Parámetro de limpieza ε"
 show_statistics: "Mostrar estadísticas"
 set_language: "Seleccionar idioma"
-depth_range_label: "Rango de profundidad:"
-depth_range_to: "a"
+
 dt_label: "Δt (paso de tiempo)"
 apply_dt: "Aplicar Δt"
 

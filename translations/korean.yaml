@@ -6,10 +6,13 @@ window_title: "Barnes-Hut 컨트롤러"
 # 체크박스 및 컨트롤
 show_bodies: "천체 표시"
 show_quadtree: "쿼드트리 표시"
+quadtree_depth_range_label: "깊이 범위:"
+quadtree_depth_range_to: "~"
+show_cleaning: "깨끗함(베타)"
+cleaning_value_label: "청소 매개변수 ε"
 show_statistics: "통계 표시"
 set_language: "언어 선택"
-depth_range_label: "깊이 범위:"
-depth_range_to: "~"
+
 dt_label: "Δt (시간 단계)"
 apply_dt: "Δt 적용"
 

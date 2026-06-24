@@ -5,6 +5,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+use crate::simulation::{get_epsilon, set_epsilon}; // cleaning addition
 use crate::{body::Body, gui_state::GuiState, quadtree::Node, scenario_config::SimulationConfig};
 use quarkstrom::{egui, winit::event::VirtualKeyCode, winit_input_helper::WinitInputHelper};
 
@@ -57,6 +58,7 @@ pub static SPAWN: Lazy<Mutex<Vec<Body>>> = Lazy::new(|| Mutex::new(Vec::new()));
 pub static RESET_BODIES: Lazy<Mutex<Option<(Vec<Body>, f32, f32, f32)>>> =
     Lazy::new(|| Mutex::new(None));
 pub static DT: Lazy<Mutex<f32>> = Lazy::new(|| Mutex::new(0.05));
+pub static CLEANING: Lazy<AtomicBool> = Lazy::new(|| false.into());
 
 const PRESETS: &[(&str, &str)] = &[
     ("🌌 Оригинальный диск (100k тел)", ""),
@@ -107,6 +109,7 @@ pub struct Renderer {
     show_stats: bool,
     show_help: bool,
     show_change_language: bool,
+    show_cleaning: bool,
 
     depth_range: (usize, usize),
     spawn_body: Option<Body>,
@@ -139,7 +142,8 @@ impl quarkstrom::Renderer for Renderer {
             show_quadtree: false,
             show_stats: false,
             show_help: false,
-            show_change_language: true,
+            show_change_language: false,
+            show_cleaning: false,
 
             depth_range: (0, 0),
             spawn_body: None,
@@ -367,17 +371,39 @@ impl quarkstrom::Renderer for Renderer {
             .show(ctx, |ui| {
                 ui.checkbox(&mut self.show_bodies, t("show_bodies"));
                 ui.checkbox(&mut self.show_quadtree, t("show_quadtree"));
-                ui.checkbox(&mut self.show_stats, t("show_statistics"));
-                ui.checkbox(&mut self.show_change_language, t("set_language"));
+
                 if self.show_quadtree {
                     let range = &mut self.depth_range;
                     ui.horizontal(|ui| {
-                        ui.label(t("depth_range_label"));
+                        ui.label(t("quadtree_depth_range_label"));
                         ui.add(egui::DragValue::new(&mut range.0).speed(0.05));
-                        ui.label(t("depth_range_to"));
+                        ui.label(t("quadtree_depth_range_to"));
                         ui.add(egui::DragValue::new(&mut range.1).speed(0.05));
                     });
                 }
+
+                if ui
+                    .checkbox(&mut self.show_cleaning, t("show_cleaning"))
+                    .changed()
+                {
+                    CLEANING.store(self.show_cleaning, std::sync::atomic::Ordering::Relaxed);
+                }
+                if self.show_cleaning {
+                    let range = (0.00001_f64, 1.5_f64);
+                    let mut eps = get_epsilon() as f64;
+                    let response = ui.add(
+                        egui::Slider::new(&mut eps, range.0..=range.1)
+                            .logarithmic(true)
+                            .fixed_decimals(5)
+                            .text(t("cleaning_value_label")),
+                    );
+                    if response.changed() {
+                        set_epsilon(eps as f32);
+                    }
+                }
+
+                ui.checkbox(&mut self.show_stats, t("show_statistics"));
+                ui.checkbox(&mut self.show_change_language, t("set_language"));
 
                 let is_paused = PAUSED.load(Ordering::Relaxed);
                 if ui
@@ -489,7 +515,7 @@ impl quarkstrom::Renderer for Renderer {
             egui::Window::new(t("stats_window_title"))
                 .resizable(false)
                 .collapsible(false)
-                .fixed_pos(egui::pos2(screen_right_x - 300.0, 10.0))
+                .fixed_pos(egui::pos2(screen_right_x / 2.0, 10.0))
                 .show(ctx, |ui| {
                     ui.set_width(300.0);
                     let total_mass: f32 = self.bodies.iter().map(|b| b.mass).sum();

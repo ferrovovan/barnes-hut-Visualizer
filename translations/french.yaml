@@ -6,10 +6,13 @@ window_title: "Contrôleur Barnes-Hut"
 # Cases à cocher et contrôles
 show_bodies: "Afficher les corps"
 show_quadtree: "Afficher le quadtree"
+quadtree_depth_range_label: "Plage de profondeur :"
+quadtree_depth_range_to: "à"
+show_cleaning: "NETTOYAGE (bêta)"
+cleaning_value_label: "Paramètre de nettoyage ε"
 show_statistics: "Afficher les statistiques"
 set_language: "Choisir la langue"
-depth_range_label: "Plage de profondeur :"
-depth_range_to: "à"
+
 dt_label: "Δt (pas de temps)"
 apply_dt: "Appliquer Δt"
 
